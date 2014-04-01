@@ -1,0 +1,10 @@
+Initially I did
+
+git remote add guru git@guru.ucsd.edu:ExampleSelection.git
+git push -u guru master
+
+To clone the project, do
+
+git clone git@guru.ucsd.edu:ExampleSelection.git
+cd ExampleSelection
+
