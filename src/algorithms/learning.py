@@ -5,26 +5,35 @@ The learning algorithms update the dictionary (A) from the observables (X) and a
 '''
 from numpy import *
 from numpy import power
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 from data.dictionary import normalize
 
+from algorithms.encoding import KSparse
+
 class Base(object):
-    def __init__(self, encoding_fn, num_iter = 100, **kwds):
-        self.encoding_fn = encoding_fn
+    def __init__(self, encoder, num_iter = 100, **kwds):
+        self.encoder = encoder
         self.num_iter = num_iter
     
 
 class GD(Base):
-    """Update dictionaries using a simple (stochastic) gradient descent method."""
+    """Update dictionaries using a simple (stochastic) gradient descent method.
+    
+    >>> encoder = KSparse(); updater = GD(encoder, eta = .01)
+    
+    >>> assert_equal(updater.eta, .01)
+    
+    >>> assert_equal(updater.encoder, encoder)
+    """
 
-    def __init__(self, eta = .1, **kwds):
+    def __init__(self, encoder, eta = .1, **kwds):
         self.eta = eta
-        super(GD, self).__init__(**kwds)
+        super(GD, self).__init__(encoder, **kwds)
     
     def update(self, X, A):
         K = A.shape[1]
         for _ in range(self.num_iter):
-            S = self.encoding_fn(X, A)
+            S = self.encoder.encode(X, A)
             Xr= A*S
             Gr= (Xr-X) * S.T / S.shape[1]
             A = A - self.eta / K * Gr
@@ -35,8 +44,8 @@ class GD(Base):
 class KSVD(Base):
     """Update dictionaries using k-SVD method"""
     
-    def __init__(self, **kwds):
-        pass
+    def __init__(self, encoder, **kwds):
+        super(KSVD, self).__init__(encoder, **kwds)
     
     def update(self, X, A):
         # TODO write this

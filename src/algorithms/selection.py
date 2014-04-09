@@ -8,7 +8,7 @@ from numpy.random import permutation
 from numpy.testing import assert_allclose
 
 class Base(object):
-    def __init__(self, n):
+    def __init__(self, n, **kwds):
         self.n = n    
 
 class Unif(Base):
@@ -16,7 +16,7 @@ class Unif(Base):
     
     >>> from numpy.random import randn
     
-    >>> Uniform(3).select(randn(2, 100), randn(2,3), randn(3, 100)).shape
+    >>> Unif(3).select(randn(2, 100), randn(2,3), randn(3, 100)).shape
     (3,)
 
     """

@@ -8,3 +8,8 @@ To clone the project, do
 git clone git@guru.ucsd.edu:ExampleSelection.git
 cd ExampleSelection
 
+To compile SPAMS on OSX:
+
+sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future python setup.py install
+
+on python27-apple and apple-gcc42.

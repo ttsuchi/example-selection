@@ -45,7 +45,7 @@ class KSparse(Base):
     def __init__(self, K = 3, **kwds):
         self.K = K
         super(KSparse, self).__init__(**kwds)
-    
+
     def encode(self, X, A):
         """Picks the top K maximum activations for each column.
         

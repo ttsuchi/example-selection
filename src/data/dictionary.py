@@ -4,20 +4,20 @@
 @author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
 '''
 from numpy import *
+from numpy import sum
 from numpy.random import randn
 from numpy.testing import assert_allclose, assert_array_equal
 
 def normalize(A):
-    """Normalizes A to have zero mean and unit norm.
+    """Normalizes A to have unit norm.
     
-    >>> A=normalize(asmatrix(randn(10,100)))
+    >>> nA = matrix([[0,1,1],[1,0,1]]); A=normalize(nA)
 
-    >>> assert_allclose(mean(A), 0, atol=1e-2)
-
-    >>> assert_allclose(sum(power(A,2)), 100, atol=1e-3)
+    >>> assert_allclose(sum(multiply(A,A)), 3, atol=1e-10)
+    
+    >>> assert_allclose(A, matrix([[0,1,sqrt(.5)],[1,0,sqrt(.5)]]))
     """
-    A = A - mean(A)
-    return A*diag(1/sqrt(diag(A.T*A)))
+    return A/(sqrt(sum(multiply(A,A),axis=0))+spacing(1))
 
 class Base(object):
     def __init__(self, p = 5, K = 50, **kwds):
