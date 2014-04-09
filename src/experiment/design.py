@@ -20,6 +20,10 @@ from data.dictionary import Random, normalize
 import datetime
 import time
 
+from joblib import Parallel, delayed
+from tempfile import mkdtemp
+import os.path as path
+
 def evaluate_loss(X, A, S, idx, Astar = None):
     """Evaluates the loss values for the given X, A, S
     
@@ -106,11 +110,6 @@ class Design(object):
         
         # List to store current state
         results = [(A.copy(), None) for _ in self.selectors]
-
-        if parallel_jobs > 1:
-            from joblib import Parallel, delayed
-            from tempfile import mkdtemp
-            import os.path as path
 
         for itr in range(num_iter):
             start = time.time()
