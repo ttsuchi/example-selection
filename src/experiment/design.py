@@ -9,6 +9,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from scipy.io import savemat
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import time
 
 from munkres import Munkres
@@ -35,20 +36,41 @@ def evaluate_loss(X, A, S, idx, Astar = None):
     >>> assert_allclose( newA, normalize(matrix([[1,1,0],[1,0,1]])) )
     """
     R = X - A*S; Rp = X[:,idx] - A*S[:,idx]
-    loss = array([
+    loss = [
         mean(multiply(R, R)),
         mean(multiply(Rp,Rp))
-        ])
+        ]
     
-    if Astar != None:
-        C = 1 - Astar.T * A
+    if Astar is not None:
+        C = 1 - abs(Astar.T * A)
         idx = Munkres().compute(C.tolist())
         newA = asmatrix(zeros(A.shape))
         for r, c in idx:
             newA[:, r] = A[:, c]
-        return loss, newA
+        
+        # conformity
+        loss.append(mean(abs(Astar.T * newA)))
+        return array(loss), newA
     else:
-        return loss
+        return array(loss)
+
+def update_with_selection(design, X, A, selector):
+    """Return a new dictionary using the examples picked by the current selection policy.
+    """
+    S = design.encoder.encode(X, A)
+    
+    # Pick examples to learn from
+    idx = selector.select(X, A, S)
+    
+    # Update dictionary using these examples
+    A = design.updater.update(X[:, idx], A)
+    
+    # Evaluate the loss (and reorder A, if necessary)
+    
+    losses, A = evaluate_loss(X, A, S, idx, design.Astar)
+    
+    return A, losses
+
 
 class Design(object):
     """Create and execute a dictionary learning experiment.
@@ -59,10 +81,13 @@ class Design(object):
     def __init__(self, name, observables, selectors, encoder, updater, **kwds):
         self.name = name
         self.observables = observables
+        self.Astar =  self.observables.dictionary.A if hasattr(self.observables, 'dictionary') else None
         self.selectors = selectors
-        self.selector_names = map(lambda s: s.__class__.__name__, selectors)
+        self.selector_names = map(lambda selector: selector.name, selectors)
         self.encoder = encoder
         self.updater = updater
+        self.X_filename = path.join(mkdtemp(), 'X.dat')
+
 
     def to_dict(self):
         return {
@@ -72,24 +97,8 @@ class Design(object):
             'updater'    : self.updater.__dict__
             }
 
-    def update_with_selection(self, X, A, selector):
-        """Return a new dictionary using the examples picked by the current selection policy.
-        """
-        S = self.encoder.encode(X, A)
-        
-        # Pick examples to learn from
-        idx = selector.select(X, A, S)
-        
-        # Update dictionary using these examples
-        A = self.updater.update(X[:, idx], A)
-        
-        # Evaluate the loss (and reorder A, if necessary)
-        Astar =  self.observables.dictionary.A if hasattr(self.observables, 'dictionary') else None
-        losses, A = evaluate_loss(X, A, S, idx, Astar)
-        
-        return A, losses
 
-    def update(self, num_iter):
+    def update(self, num_iter, parallel_jobs):
         """Generator that performs the dictionary update step.
         """
         # Initial dictionary set
@@ -98,21 +107,31 @@ class Design(object):
         # List to store current state
         results = [(A.copy(), None) for _ in self.selectors]
 
+        if parallel_jobs > 1:
+            from joblib import Parallel, delayed
+            from tempfile import mkdtemp
+            import os.path as path
+
         for itr in range(num_iter):
             start = time.time()
 
             # Generate mini-batches
             X = self.observables.sample()
-            results = [self.update_with_selection(X, results[i][0], selector) for i, selector in enumerate(self.selectors)]
+            if parallel_jobs > 1:
+                Xm = memmap(self.X_filename, dtype = X.dtype, mode='w+', shape = X.shape)
+                Xm[:] = X[:]
+                results = Parallel(n_jobs = parallel_jobs)(delayed(update_with_selection)(self, Xm, results[i][0], selector) for i, selector in enumerate(self.selectors))
+            else:
+                results = [update_with_selection(self, X, results[i][0], selector) for i, selector in enumerate(self.selectors)]
             
             elapsed = (time.time() - start)
             
             yield results, elapsed, itr
     
-    def run(self, num_iter = 200, plot = False, plot_every = 10, save_every = 10):
+    def run(self, num_iter = 200, plot = False, plot_every = 10, save_every = 10, parallel_jobs = 1):
         all_results = []
         
-        for results, elapsed, itr in self.update(num_iter):
+        for results, elapsed, itr in self.update(num_iter, parallel_jobs):
             all_results.append((results, elapsed))
                 
             if mod(itr, save_every) == 1:
@@ -136,24 +155,62 @@ class Design(object):
 
     def plot(self, all_results):
         all_losses     = matrix([[loss[0] for _, loss in result[0]] for result in all_results])
-        sampled_losses = matrix([[loss[1] for _, loss in result[0]] for result in all_results])
+        sampled_losses = matrix([[loss[1] for _, loss in result[0]] for result in all_results])        
+        conformity = matrix([[loss[2] for _, loss in result[0]] for result in all_results]) if self.Astar is not None else None
+        
+        plt.figure(1)
+        plt.clf()
+        self.plot_losses(all_losses, sampled_losses, conformity)
+        plt.draw()
+        
         # last element
         last_result = all_results[-1]
-        last_A = last_result[0]
+        As = [A for A, _ in last_result[0]]
+
+        for p, selector in enumerate(self.selectors):
+            plt.figure(2 + p)
+            plt.clf()
+            self.plot_current_A(selector, As[p])
+            plt.draw()
         
-        plt.clf()
-        plt.subplot(2,1,1)
+        plt.pause(1)
+    
+    def plot_losses(self, all_losses, sampled_losses, conformity = None):
+        N = 2 if conformity is None else 3
+        
+        plt.subplot(N,1,1)
         plt.plot(sampled_losses) 
         plt.legend(self.selector_names)
         plt.title("loss for the sampled set")
-        plt.subplot(2,1,2)
+
+        plt.subplot(N,1,2)
         plt.plot(all_losses)
         plt.legend(self.selector_names)
         plt.title("loss for all training set")
-        plt.draw()
 
-        plt.pause(1)       
+        plt.subplot(N,1,3)
+        plt.plot(conformity)
+        plt.legend(self.selector_names)
+        plt.title("Average conformity")
 
+    def plot_current_A(self, selector, A):
+        rows = 1 if self.Astar is None else 2
+        K = min(8, self.observables.K)
+        self.subplot_A(A, K, rows, 0)
+        plt.title("Current dictionaries for " + selector.name)
+        
+        if self.Astar is not None:
+            self.subplot_A(self.Astar, K, rows, 1)
+            plt.title("True dictionaries")            
+    
+    def subplot_A(self, A, K, rows, row):
+        scaling = max(abs(nanmin(A)), nanmax(A))
+        for k in range(K):
+            a = A[:, k].reshape((self.observables.p, self.observables.p))
+            plt.subplot(rows, K, row * K + k)
+            plt.imshow(a, cmap = plt.get_cmap('RdBu'), aspect = 'equal', interpolation = 'none', vmin = -scaling, vmax=scaling)
+            plt.axis('off')           
+    
 if __name__ == '__main__':
     import doctest
     doctest.testmod()

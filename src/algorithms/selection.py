@@ -9,7 +9,11 @@ from numpy.testing import assert_allclose
 
 class Base(object):
     def __init__(self, n, **kwds):
-        self.n = n    
+        self.n = n
+    
+    @property
+    def name(self):
+        return self.__class__.__name__
 
 class Unif(Base):
     """Randomly select examples

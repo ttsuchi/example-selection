@@ -17,7 +17,7 @@ def demo():
     selectors = [Unif(100), MXGD(100)]
     encoder = KSparse(K = 2)
     design = Design('demo', FromDictionaryL1(true_dictionary), selectors, encoder, GD(encoder))
-    design.run(200, plot = True, plot_every = 10, save_every = 10)
+    design.run(200, plot = True, plot_every = 10, save_every = 10, parallel_jobs = 1)
 
 if __name__ == '__main__':
     demo()
