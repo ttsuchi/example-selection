@@ -1,55 +1,73 @@
 '''
-The learning algorithms update the dictionary (A) from the observables (X) and activations (S).
+Represents a single step of dictionary learning iteration.
 
 @author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
 '''
 from numpy import *
-from numpy import power
-from numpy.testing import assert_allclose, assert_equal
+from numpy.random import randn
+from numpy.testing import assert_allclose, assert_array_equal
+
+from munkres import Munkres
+
 from data.dictionary import normalize
 
-from algorithms.encoding import KSparse
-
-class Base(object):
-    def __init__(self, encoder, num_iter = 100, **kwds):
-        self.encoder = encoder
-        self.num_iter = num_iter
+def evaluate_loss(X, A, S, idx, Astar = None):
+    """Evaluates the loss values for the given X, A, S
     
-
-class GD(Base):
-    """Update dictionaries using a simple (stochastic) gradient descent method.
+    returns (loss, A), where:
+        loss: [reconstruction loss across all X, reconstruction loss across currently picked X]
+        A: re-ordered dictionary accoring to the best match, if the true dictionary (Astar) is provided
+        
+    >>> X = matrix([[1, 2, 0, sqrt(.5)], [0, 0, 1, 2+sqrt(.5)]]); A = normalize(matrix([[1,0,1],[0,1,1]])); S = matrix(([1, 2, 0, 0],[0, 0, 1, 2],[0, 0, 0, 1]))
     
-    >>> encoder = KSparse(); updater = GD(encoder, eta = .01)
+    >>> loss, _ = evaluate_loss(X, A, S, array([0,1])); assert_allclose( loss['loss_all'], 0, atol=1e-10)
     
-    >>> assert_equal(updater.eta, .01)
+    >>> _, newA=evaluate_loss(X, A, S, array([0,1]), normalize(matrix([[1,.9,0],[1.1,0,1]])))
     
-    >>> assert_equal(updater.encoder, encoder)
+    >>> assert_allclose( newA, normalize(matrix([[1,1,0],[1,0,1]])) )
     """
-
-    def __init__(self, encoder, eta = .1, **kwds):
-        self.eta = eta
-        super(GD, self).__init__(encoder, **kwds)
+    R = X - A*S; Rp = X[:,idx] - A*S[:,idx]
+    loss = {
+        'loss_all': mean(multiply(R, R)),
+        'loss_sampled': mean(multiply(Rp,Rp))
+    }
     
-    def update(self, X, A):
-        K = A.shape[1]
-        for _ in range(self.num_iter):
-            S = self.encoder.encode(X, A)
-            Xr= A*S
-            Gr= (Xr-X) * S.T / S.shape[1]
-            A = A - self.eta / K * Gr
-            A = normalize(A)
+    newA = None
+    if Astar is not None:
+        # Calculate conformity
+        C = 1 - abs(Astar.T * A)
+        idx = Munkres().compute(C.tolist())
+        newA = asmatrix(zeros(A.shape))
+        for r, c in idx:
+            newA[:, r] = A[:, c]
 
-        return A
+        loss['conformity'] = mean(abs(Astar.T * newA))
 
-class KSVD(Base):
-    """Update dictionaries using k-SVD method"""
+    return loss, newA
+
+def update_with(design, X, A, selector):
+    """Return a new dictionary using the examples picked by the current selection policy.
+    """
+    stats = {}
     
-    def __init__(self, encoder, **kwds):
-        super(KSVD, self).__init__(encoder, **kwds)
+    # Encode all training examples
+    S = design.encoder.encode(X, A)
     
-    def update(self, X, A):
-        # TODO write this
-        return A
+    # Pick examples to learn from
+    idx = selector.select(X, A, S)
+    
+    # Update dictionary using these examples
+    newA = design.updater.update(X[:, idx], A)
+    delta = newA - A
+    stats['std'] = sqrt(mean(multiply(delta, delta)))
+    
+    # Evaluate the loss (and reorder A, if necessary)
+    loss, A = evaluate_loss(X, newA, S, idx, design.Astar)
+    stats.update(loss)
+
+    # Some top chosen examples
+    Xp = X[:, idx[:min(len(idx), A.shape[1])]]
+    return A, stats, Xp
 
 if __name__ == '__main__':
     import doctest
