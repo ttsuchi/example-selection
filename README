@@ -13,3 +13,19 @@ To compile SPAMS on OSX:
 sudo ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future python setup.py install
 
 on python27-apple and apple-gcc42.
+
+
+-----
+This software also depends on
+
+Munkres https://pypi.python.org/pypi/munkres/
+
+h5py http://www.h5py.org/  (this also requires installing libhdf5-dev, e.g. apt-get install libhdf5-dev)
+
+pandas http://pandas.pydata.org/
+
+
+
+Install them with:
+
+pip install pandas h5py munkres
