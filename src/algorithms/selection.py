@@ -56,13 +56,13 @@ def select_per_dictionary(G):
     return Rf[sort(idx)]
     
 
-class SalS(Base):
+class MagS(Base):
     def select(self, X, A, S):
-        return select_by_sum(sum(abs(S)))[:self.n]
+        return select_by_sum(abs(S))[:self.n]
 
-class SalD(Base):
+class MagD(Base):
     def select(self, X, A, S):
-        return select_per_dictionary(sum(abs(S)))[:self.n]
+        return select_per_dictionary(abs(S))[:self.n]
     
 class MXGS(Base):
     def select(self, X, A, S):

@@ -47,7 +47,7 @@ class Base(object):
 class FromDictionary(Base):
     """Generate examples from a set of "ground-truth" dictionary elements
     
-    >>> Astar = Random(8, 100); Xgen = FromDictionary(Astar)
+    >>> Astar = Random(8, 100, sort=False); Xgen = FromDictionary(Astar)
     
     >>> assert_equal(Xgen.p, 8)
     
@@ -78,7 +78,7 @@ class FromDictionaryL0(FromDictionary):
 class FromDictionaryL1(FromDictionary):
     """Generate examples from a set of "ground-truth" dictionary elements, using L1 sparsity
 
-    >>> Astar = Random(4, 100); Xgen = FromDictionaryL1(Astar, lambdaS = 0.5, N = 500)
+    >>> Astar = Random(4, 100, sort=False); Xgen = FromDictionaryL1(Astar, lambdaS = 0.5, N = 500)
     
     >>> assert_equal(Xgen.p, 4); assert_equal(Xgen.K, 100); assert_equal(Xgen.lambdaS, 0.5); assert_equal(Xgen.N, 500)
     

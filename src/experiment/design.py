@@ -18,6 +18,7 @@ import time
 
 from joblib import Parallel, delayed
 from tempfile import mkdtemp
+import os
 import os.path as path
 
 
@@ -36,6 +37,10 @@ class Design(object):
     def run(self, num_iter, save_every = 10, plot_every = 10, parallel_jobs = 1):
         """Executes the dictionary learning experiment.
         """
+        
+        # Don't plot on a headless environment
+        do_plot = os.environ.has_key('DISPLAY') and plot_every > 0
+        
         state = State(self)
         
         for _ in range(num_iter):
@@ -44,7 +49,7 @@ class Design(object):
             if save_every > 0 and (state.itr % save_every == 1):
                 state.save()
 
-            if plot_every > 0 and (state.itr % plot_every == 1):
+            if do_plot and (state.itr % plot_every == 1):
                 state.plot()
 
             print("iter=%3d / %3d, %f[s] elapsed, estimated finish at %s\n" % 
@@ -52,7 +57,9 @@ class Design(object):
 
         state.save()
 
-
+        if do_plot:
+            print "Done, close the figures to exit"
+            plt.waitforbuttonpress()
 
 class State:
     """Represents a state in the dictionary learning iteration.
@@ -64,7 +71,7 @@ class State:
         self.design = design
 
         # Initial dictionary set
-        A = Random(design.observables.p, design.observables.K).A
+        A = Random(design.observables.p, design.observables.K, sort = False).A
         
         self.As     = [A.copy() for _ in design.selectors]
         self.Xs     = []

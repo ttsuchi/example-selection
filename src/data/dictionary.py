@@ -4,9 +4,9 @@
 @author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
 '''
 from numpy import *
-from numpy import sum
-from numpy.random import randn
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.random import randn, randint
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+from numpy.random import rand
 
 import matplotlib.cm as cmx
 
@@ -58,9 +58,46 @@ def to_image(A, border = 1, colorize = True):
         
     return image
 
+def sort2d(A):
+    """Sort the dictionary elements so that, when visualized in a 2D array, similar elements come next to each other.
+    
+    >>> assert_equal((36, 169), sort2d(randn(36, 169)).shape)
+    sorting dictionaries...
+    done.    
+    """
+    print "sorting dictionaries..."
+    A = matrix(A.copy())
+    P, K = A.shape
+
+    # the big image size
+    Y = int(ceil(sqrt(K)))
+
+    # Create neighbor graph
+    neighbors = [[((y-1) % Y)*Y + x, y*Y + ((x-1) % Y), y*Y + ((x+1) % Y), ((y+1) % Y)* Y + x] for x, y in zip(tile(arange(Y), [Y,1]).flatten(), tile(arange(Y), [Y,1]).flatten('F'))]
+    neighbors = [[k if k < K else k - Y for k in l] for l in neighbors]
+
+    # Do random swap and try to improve
+    for _ in xrange(10000):
+        a = randint(K)
+        b = randint(K)
+        na = neighbors[a]
+        nb = neighbors[b]
+
+        E0 = sum(A[:, a].T * A[:, na] + A[:, b].T * A[:, nb])
+        E1 = sum(A[:, a].T * A[:, nb] + A[:, b].T * A[:, na])
+        
+        if E1 > E0:
+            A[:, [a, b]] = A[:, [b, a]]
+
+    print "done."
+    return A
+
 class DictionarySet(object):
-    def __init__(self, A, **kwds):
-        self.A = normalize(A)
+    def __init__(self, A, sort = True, **kwds):
+        A = normalize(A)
+        if sort:
+            A = sort2d(A)
+        self.A = A
         self.P, self.K = A.shape
 
 class GeneratedDictionary(DictionarySet):
@@ -71,7 +108,7 @@ class GeneratedDictionary(DictionarySet):
 class Random(GeneratedDictionary):
     """Random dictionary
 
-    >>> R=Random(p=8, K=100); A=R.A
+    >>> R=Random(p=8, K=100, sort=False); A=R.A
     
     >>> A.shape
     (64, 100)
@@ -106,25 +143,57 @@ class Lines(GeneratedDictionary):
 
 class RandomGabors(GeneratedDictionary):
     """Generate random Gabor patches
+
+    >>> R=RandomGabors(p=8, K=100, sort=False); A=R.A
+    
+    >>> A.shape
+    (64, 100)
+
     """
-    def __init__(self, plambda = -1, sigma = -1, **kwds):
-        self.plambda = plambda if plambda > 0 else ceil(self.p / 2)
-        self.sigma = sigma if sigma > 0 else ceil(self.p / 4)
+    def __init__(self, plambda = -1, psigma = -1, **kwds):
+        self.plambda = plambda if plambda > 0 else ceil(kwds['p'] / 2)
+        self.psigma = psigma if psigma > 0 else ceil(kwds['p'] / 4)
         super(RandomGabors, self).__init__(**kwds)
     
     def generate_A(self, P, K):
         A=zeros((P, K))
 
-        for ki in range(self.K):
+        for ki in range(K):
             F=self.gabor(self.p,self.p,self.plambda,self.psigma)
-            A[:,ki]=F[:]
-        
+            A[:,ki]=F.reshape((P, 1))[:,0]
+
         return A
     
-    def gabor(self, width, height, plambda, sigma):
-        # TODO write gabor
-        return 0
+    def gabor(self, width, height, plambda, psigma):
+        xv, yv = meshgrid(arange(width), arange(height))
+        
+        cx = (rand()*0.8 + 0.1)*width
+        cy = (rand()*0.8 + 0.1)*height
+        lm = (.8 + rand()*.4)*plambda
+        sgx = (.8 + rand()*.4)*psigma; sgx = sgx*sgx
+        sgy = (.8 + rand()*.4)*psigma; sgy = sgy*sgy
+        
+        theta = rand() * 2 * pi
+        xt = (xv-cx) * cos(theta) + (yv-cy) * sin(theta)
+        yt =-(xv-cx) * sin(theta) + (yv-cy) * cos(theta)
+        
+        return exp(-.5 * ((xt*xt)/sgx+(yt*yt)/sgy)) * cos(2 * pi/lm * xt)
     
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+    
+    import sys
+    if len(sys.argv) > 1:
+        # Plot some dictionaries
+        import matplotlib.pyplot as plt
+        for cls in [Random, RandomGabors]:            
+            A = cls(p=12, K=256).A
+            plt.figure()
+            plt.imshow(to_image(A), aspect = 'equal', interpolation = 'nearest', vmin = 0, vmax = 1)
+            plt.axis('off')
+            plt.title(cls.__name__)
+
+        plt.show()
+        
+            
