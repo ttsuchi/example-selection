@@ -156,7 +156,7 @@ class State:
             plt.clf()
             n=1
             
-            if N > 2:
+            if Astar is not None:
                 plt.subplot(1,N,1)
                 plt.imshow(to_image(Astar), aspect = 'equal', interpolation = 'nearest', vmin = 0, vmax = 1)
                 plt.axis('off')
@@ -194,11 +194,11 @@ class State:
     
         plt.subplot(N,1,3)
         plt.plot(self.history('std'))
-        if N > 3:
+        if Astar is not None:
             plt.gca().set_xticklabels([])
         plt.title("mean difference in A")
 
-        if N > 3:
+        if Astar is not None:
             plt.subplot(N,1,4)
             plt.plot(self.history('conformity'))
             plt.title("Average conformity")

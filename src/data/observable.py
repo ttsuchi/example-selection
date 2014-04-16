@@ -5,12 +5,14 @@ Generates observable signals (X).
 '''
 from numpy import *
 from numpy.linalg import eigh
-from numpy.random import randn, rand
+from numpy.random import randn, rand, randint
 from numpy.testing import assert_allclose, assert_equal, assert_array_less
+
+from scipy.io import loadmat
 
 from dictionary import Random
 
-from common import ary
+from common import mtr
 
 def whiten(X):
     """Whiten the signal X so that it has zero mean and zero cross-correlation.
@@ -64,7 +66,7 @@ class FromDictionary(Base):
     def sample(self):
         S = self.generate_S()
         X = self.dictionary.A*S
-        return asmatrix(ary(whiten(X) + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr)))
+        return mtr(whiten(X) + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr))
 
 class FromDictionaryL0(FromDictionary):
     """Generate examples from a set of "ground-truth" dictionary elements, using L0 sparsity
@@ -94,20 +96,37 @@ class FromDictionaryL1(FromDictionary):
         super(FromDictionaryL1, self).__init__(dictionary, **kwds)
     
     def generate_S(self):
-        return asmatrix(-log(ary(rand(self.dictionary.K, self.N))) / self.lambdaS)
+        return mtr(-log(rand(self.dictionary.K, self.N)) / self.lambdaS)
 
 class FromImageDataset(Base):
-    """Generate examples from image datasets.
+    """Generate samples from the IMAGES.mat file from http://redwood.berkeley.edu/bruno/sparsenet/.
+    
+    >>> Xgen = FromImageDataset('../contrib/sparsenet/IMAGES.mat', p = 16, K=192)
+    
+    >>> assert_equal(Xgen.sample().shape, (256, Xgen.N))
+    
+    >>> print isfortran(Xgen.sample())
+    True
+    
     """
-    def __init__(self, dataset_dir, **kwds):       
-        self.dataset_dir = dataset_dir
+    
+    def __init__(self, images_mat, **kwds):
         super(FromImageDataset, self).__init__(**kwds)
-    
+        self.images = loadmat(images_mat)['IMAGES']
+
     def sample(self):
-        # TODO implement this
-        X = zeros((self.P, self.N))
-        return whiten(X)
-    
+        image_size, _, num_images = self.images.shape
+        this_image = self.images[:, :, randint(num_images)].squeeze()
+        BUFF = 4
+        
+        X = mtr(zeros((self.P, self.N)))
+        for n in range(self.N):
+            r=BUFF+randint(image_size-self.p-2*BUFF)
+            c=BUFF+randint(image_size-self.p-2*BUFF)
+            X[:,n]=this_image[r:(r+self.p), c:(c+self.p)].reshape([self.P, 1])
+        return X
+
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
