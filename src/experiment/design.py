@@ -7,13 +7,15 @@ from numpy import *
 from numpy.testing import assert_allclose, assert_array_equal
 
 import matplotlib.pyplot as plt
+import itertools
+import string
 import pandas
 import pickle
 
 from data.dictionary import Random, to_image
 from algorithms.learning import update_with
 
-from common import ary
+from common import mtr
 
 import datetime
 import time
@@ -24,17 +26,15 @@ import os
 import os.path as path
 
 
-class Design(object):
-    """Describes a particular experiment.
-    """
-    
-    def __init__(self, name, observables, selectors, encoder, updater, **kwds):
+class Experiment(object):
+    def __init__(self, name, observables, selectors = None, encoders = None, updaters = None, designs = None, **kwds):
         self.name = name
         self.observables = observables
         self.Astar =  self.observables.dictionary.A if hasattr(self.observables, 'dictionary') else None
-        self.selectors = selectors
-        self.encoder = encoder
-        self.updater = updater       
+
+        if designs is None:
+            designs = [Design(self, selector, encoder, updater) for selector, encoder, updater in itertools.product(selectors, encoders, updaters)]
+        self.designs = designs
 
     def run(self, num_iter, save_every = 10, plot_every = 10, parallel_jobs = 1):
         """Executes the dictionary learning experiment.
@@ -63,21 +63,35 @@ class Design(object):
             print "Done, close the figures to exit"
             plt.waitforbuttonpress()
 
+
+class Design(object):
+    """Describes a particular experiment variation with specific algorithms.
+    """
+    
+    def __init__(self, experiment, selector, encoder, updater, **kwds):
+        self.experiment = experiment
+        self.selector = selector
+        self.encoder = encoder
+        self.updater = updater       
+
+    def name(self):
+        return string.join([o.__class__.__name__ for o in [self.selector, self.encoder, self.updater]], '-')
+
 class State:
     """Represents a state in the dictionary learning iteration.
     """
     
     SAVE_DIR='../results/'
     
-    def __init__(self, design):
-        self.design = design
+    def __init__(self, experiment):
+        self.experiment = experiment
 
         # Initial dictionary set
-        A = Random(design.observables.p, design.observables.K, sort = False).A
+        A = Random(experiment.observables.p, experiment.observables.K, sort = False).A
         
-        self.As     = [ary(A.copy()) for _ in design.selectors]
+        self.As     = [mtr(A.copy()) for _ in experiment.designs]
         self.Xs     = []
-        self.losses = [pandas.DataFrame() for _ in design.selectors]
+        self.losses = [pandas.DataFrame() for _ in experiment.designs]
         self.stats  = pandas.DataFrame() 
         self.itr    = 0
         self.elapsed = 0.0
@@ -86,18 +100,19 @@ class State:
         """Performs the dictionary update step.
         """
         start = time.time()
-
+        
         # Generate mini-batches
-        X = self.design.observables.sample()
+        X = self.experiment.observables.sample()
 
         # Execute in parallel or serial        
+        designs = self.experiment.designs
         if parallel_jobs > 1:
             X_filename = path.join(mkdtemp(), 'X.dat')
             Xm = memmap(X_filename, dtype = X.dtype, mode='w+', shape = X.shape)
             Xm[:] = X[:]
-            results = Parallel(n_jobs = parallel_jobs)(delayed(update_with)(self.design, Xm, A, selector) for A, selector in zip(self.As, self.design.selectors))
+            results = Parallel(n_jobs = parallel_jobs)(delayed(update_with)(design, Xm, A) for A, design in zip(self.As, designs))
         else:
-            results = [update_with(self.design, X, A, selector) for A, selector in zip(self.As, self.design.selectors)]        
+            results = [update_with(design, X, A) for A, design in zip(self.As, designs)]        
         
         self.As, current_losses, self.Xs = tuple(map(list, zip(*results)))
         self.losses = map( lambda l_c: l_c[0].append(l_c[1], ignore_index = True), zip(self.losses, current_losses))
@@ -107,7 +122,7 @@ class State:
         self.itr += 1
 
     def save(self):
-        with open(State.SAVE_DIR + self.design.name + '.pkl', 'wb') as fout:
+        with open(State.SAVE_DIR + self.experiment.name + '.pkl', 'wb') as fout:
             pickle.dump(self, fout)
 
     @classmethod
@@ -124,19 +139,19 @@ class State:
         return matrix(map(lambda loss: loss[column].as_matrix(), self.losses)).T
 
     def plot(self):
-        selector_names = map(lambda selector: selector.name, self.design.selectors)
-        
+        design_names = map(lambda design: design.name(), self.experiment.designs)
+        Astar = self.experiment.Astar
        
         N = 2
-        N+= 0 if self.design.Astar is None else 1
-        for p, (selector_name, A, X) in enumerate(zip(selector_names, self.As, self.Xs)):
+        N+= 0 if Astar is None else 1
+        for p, (selector_name, A, X) in enumerate(zip(design_names, self.As, self.Xs)):
             plt.figure(p + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
             plt.clf()
             n=1
             
             if N > 2:
                 plt.subplot(1,N,1)
-                plt.imshow(to_image(self.design.Astar), aspect = 'equal', interpolation = 'nearest', vmin = 0, vmax = 1)
+                plt.imshow(to_image(Astar), aspect = 'equal', interpolation = 'nearest', vmin = 0, vmax = 1)
                 plt.axis('off')
                 plt.title('Ground-truth')
                 n+=1
@@ -156,8 +171,8 @@ class State:
             plt.draw()
 
         N = 4
-        N+= 0 if self.design.Astar is None else 1
-        plt.figure(len(selector_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
+        N+= 0 if Astar is None else 1
+        plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
         plt.clf()
         
         plt.subplot(N,1,1)
@@ -182,9 +197,9 @@ class State:
             plt.title("Average conformity")
         
         plt.subplot(N,1,N)
-        plt.plot(zeros((2,len(selector_names))))
+        plt.plot(zeros((2,len(design_names))))
         plt.axis('off')
-        plt.legend(selector_names, loc='center', ncol=4)
+        plt.legend(design_names, loc='center', ncol=4)
 
         plt.draw()
         

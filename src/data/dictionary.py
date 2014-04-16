@@ -8,7 +8,7 @@ from numpy.random import randn, randint
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from numpy.random import rand
 
-from common import ary
+from common import mtr
 
 import matplotlib.cm as cmx
 
@@ -68,7 +68,7 @@ def sort2d(A):
     done.    
     """
     print "sorting dictionaries..."
-    A = asmatrix(ary(A.copy()))
+    A = mtr(A.copy())
     K = A.shape[1]
 
     # the big image size
@@ -105,7 +105,7 @@ class DictionarySet(object):
 class GeneratedDictionary(DictionarySet):
     def __init__(self, p = 5, K = 50, **kwds):
         self.p = p
-        super(GeneratedDictionary, self).__init__(asmatrix(ary(self.generate_A(p*p, K))), **kwds)
+        super(GeneratedDictionary, self).__init__(mtr(self.generate_A(p*p, K)), **kwds)
 
 class Random(GeneratedDictionary):
     """Random dictionary

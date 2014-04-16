@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose, assert_equal
 from data.dictionary import normalize
 
 from algorithms.encoding import KSparse
-from common import ary
+from common import mtr
 
 class Base(object):
     def __init__(self, encoder, num_iter = 100, **kwds):
@@ -38,9 +38,9 @@ class GD(Base):
             Xr= A*S
             Gr= (Xr-X) * S.T / S.shape[1]
             A = A - self.eta / K * Gr
-            A = ary(normalize(A))
+            A = mtr(normalize(A))
 
-        return asmatrix(A)
+        return A
 
 class KSVD(Base):
     """Update dictionaries using k-SVD method"""
@@ -50,7 +50,7 @@ class KSVD(Base):
     
     def update(self, X, A):
         # TODO write this
-        return ary(A)
+        return mtr(A)
 
 if __name__ == '__main__':
     import doctest

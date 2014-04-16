@@ -46,7 +46,7 @@ def evaluate_loss(X, A, S, idx, Astar = None):
 
     return loss, newA
 
-def update_with(design, X, A, selector):
+def update_with(design, X, A):
     """Return a new dictionary using the examples picked by the current selection policy.
     """
     stats = {}
@@ -55,7 +55,7 @@ def update_with(design, X, A, selector):
     S = design.encoder.encode(X, A)
     
     # Pick examples to learn from
-    idx = selector.select(X, A, S)
+    idx = design.selector.select(X, A, S)
     
     # Update dictionary using these examples
     Xp = ary(X[:, idx])
@@ -64,7 +64,7 @@ def update_with(design, X, A, selector):
     stats['std'] = sqrt(mean(multiply(delta, delta)))
     
     # Evaluate the loss (and reorder A, if necessary)
-    loss, A = evaluate_loss(X, newA, S, idx, design.Astar)
+    loss, A = evaluate_loss(X, newA, S, idx, design.experiment.Astar)
     stats.update(loss)
 
     # Some top chosen examples

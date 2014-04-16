@@ -64,7 +64,7 @@ class FromDictionary(Base):
     def sample(self):
         S = self.generate_S()
         X = self.dictionary.A*S
-        return ary(whiten(X) + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr))
+        return asmatrix(ary(whiten(X) + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr)))
 
 class FromDictionaryL0(FromDictionary):
     """Generate examples from a set of "ground-truth" dictionary elements, using L0 sparsity
