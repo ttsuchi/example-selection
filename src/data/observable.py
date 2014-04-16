@@ -6,9 +6,11 @@ Generates observable signals (X).
 from numpy import *
 from numpy.linalg import eigh
 from numpy.random import randn, rand
+from numpy.testing import assert_allclose, assert_equal, assert_array_less
+
 from dictionary import Random
 
-from numpy.testing import assert_allclose, assert_equal, assert_array_less
+from common import ary
 
 def whiten(X):
     """Whiten the signal X so that it has zero mean and zero cross-correlation.
@@ -62,7 +64,7 @@ class FromDictionary(Base):
     def sample(self):
         S = self.generate_S()
         X = self.dictionary.A*S
-        return whiten(X) + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr)
+        return ary(whiten(X) + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr))
 
 class FromDictionaryL0(FromDictionary):
     """Generate examples from a set of "ground-truth" dictionary elements, using L0 sparsity
@@ -92,7 +94,7 @@ class FromDictionaryL1(FromDictionary):
         super(FromDictionaryL1, self).__init__(dictionary, **kwds)
     
     def generate_S(self):
-        return asmatrix(-log(rand(self.dictionary.K, self.N)) / self.lambdaS)
+        return asmatrix(-log(ary(rand(self.dictionary.K, self.N))) / self.lambdaS)
 
 class FromImageDataset(Base):
     """Generate examples from image datasets.

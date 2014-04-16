@@ -13,6 +13,8 @@ import pickle
 from data.dictionary import Random, to_image
 from algorithms.learning import update_with
 
+from common import ary
+
 import datetime
 import time
 
@@ -73,7 +75,7 @@ class State:
         # Initial dictionary set
         A = Random(design.observables.p, design.observables.K, sort = False).A
         
-        self.As     = [A.copy() for _ in design.selectors]
+        self.As     = [ary(A.copy()) for _ in design.selectors]
         self.Xs     = []
         self.losses = [pandas.DataFrame() for _ in design.selectors]
         self.stats  = pandas.DataFrame() 
@@ -124,38 +126,11 @@ class State:
     def plot(self):
         selector_names = map(lambda selector: selector.name, self.design.selectors)
         
-        N = 3
-        N+= 0 if self.design.Astar is None else 1
-        plt.figure(1)
-        plt.clf()
-        
-        plt.subplot(N,1,1)
-        plt.plot(self.history('loss_sampled')) 
-        plt.legend(selector_names)
-        plt.title("loss for the sampled set")
-    
-        plt.subplot(N,1,2)
-        plt.plot(self.history('loss_all')) 
-        plt.legend(selector_names)
-        plt.title("loss for all training set")
-    
-        plt.subplot(N,1,3)
-        plt.plot(self.history('std')) 
-        plt.legend(selector_names)
-        plt.title("mean difference in A")
-
-        if N > 3:
-            plt.subplot(N,1,4)
-            plt.plot(self.history('conformity')) 
-            plt.legend(selector_names)
-            plt.title("Average conformity")
-
-        plt.draw()
-        
+       
         N = 2
         N+= 0 if self.design.Astar is None else 1
         for p, (selector_name, A, X) in enumerate(zip(selector_names, self.As, self.Xs)):
-            plt.figure(2 + p)
+            plt.figure(p + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
             plt.clf()
             n=1
             
@@ -169,14 +144,49 @@ class State:
             plt.subplot(1,N,n)
             plt.imshow(to_image(A), aspect = 'equal', interpolation = 'nearest', vmin = 0, vmax = 1)
             plt.axis('off')
-            plt.title(selector_name)
+            plt.title('Learned dictionary')
             n+=1
             
             plt.subplot(1,N,n)
             plt.imshow(to_image(X), aspect = 'equal', interpolation = 'nearest', vmin = 0, vmax = 1)
             plt.axis('off')
             plt.title('Top selected examples')
+            
+            plt.suptitle(selector_name)
             plt.draw()
+
+        N = 4
+        N+= 0 if self.design.Astar is None else 1
+        plt.figure(len(selector_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
+        plt.clf()
+        
+        plt.subplot(N,1,1)
+        plt.plot(self.history('loss_sampled'))
+        plt.gca().set_xticklabels([])
+        plt.title("loss for the sampled set")
+    
+        plt.subplot(N,1,2)
+        plt.plot(self.history('loss_all'))
+        plt.gca().set_xticklabels([])
+        plt.title("loss for all training set")
+    
+        plt.subplot(N,1,3)
+        plt.plot(self.history('std'))
+        if N > 3:
+            plt.gca().set_xticklabels([])
+        plt.title("mean difference in A")
+
+        if N > 3:
+            plt.subplot(N,1,4)
+            plt.plot(self.history('conformity'))
+            plt.title("Average conformity")
+        
+        plt.subplot(N,1,N)
+        plt.plot(zeros((2,len(selector_names))))
+        plt.axis('off')
+        plt.legend(selector_names, loc='center', ncol=4)
+
+        plt.draw()
         
         plt.pause(1)
     

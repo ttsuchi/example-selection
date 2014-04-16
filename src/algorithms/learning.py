@@ -9,6 +9,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from munkres import Munkres
 
+from common import ary
 from data.dictionary import normalize
 
 def evaluate_loss(X, A, S, idx, Astar = None):
@@ -37,7 +38,7 @@ def evaluate_loss(X, A, S, idx, Astar = None):
         # Calculate conformity
         C = 1 - abs(Astar.T * A)
         idx = Munkres().compute(C.tolist())
-        newA = asmatrix(zeros(A.shape))
+        newA = asmatrix(ary(zeros(A.shape)))
         for r, c in idx:
             newA[:, r] = A[:, c]
 
@@ -57,7 +58,8 @@ def update_with(design, X, A, selector):
     idx = selector.select(X, A, S)
     
     # Update dictionary using these examples
-    newA = design.updater.update(X[:, idx], A)
+    Xp = ary(X[:, idx])
+    newA = design.updater.update(Xp, A)
     delta = newA - A
     stats['std'] = sqrt(mean(multiply(delta, delta)))
     

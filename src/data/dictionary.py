@@ -8,6 +8,8 @@ from numpy.random import randn, randint
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from numpy.random import rand
 
+from common import ary
+
 import matplotlib.cm as cmx
 
 def normalize(A):
@@ -66,8 +68,8 @@ def sort2d(A):
     done.    
     """
     print "sorting dictionaries..."
-    A = matrix(A.copy())
-    P, K = A.shape
+    A = asmatrix(ary(A.copy()))
+    K = A.shape[1]
 
     # the big image size
     Y = int(ceil(sqrt(K)))
@@ -103,7 +105,7 @@ class DictionarySet(object):
 class GeneratedDictionary(DictionarySet):
     def __init__(self, p = 5, K = 50, **kwds):
         self.p = p
-        super(GeneratedDictionary, self).__init__(asmatrix(self.generate_A(p*p, K)), **kwds)
+        super(GeneratedDictionary, self).__init__(asmatrix(ary(self.generate_A(p*p, K))), **kwds)
 
 class Random(GeneratedDictionary):
     """Random dictionary

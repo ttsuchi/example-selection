@@ -4,18 +4,27 @@ The encoding algorithms calculate the activation (S) from the observable (X) and
 @author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
 '''
 from numpy import *
+from numpy.random import randn
 from spams import lasso, somp
+
+from common import ary
 
 class Base(object):
     def __init__(self, **kwds):
         pass
 
 class LASSO(Base):
+    """Solve the LASSO problem using the SPAMS package:
+
+        min_{alpha} 0.5||x-Dalpha||_2^2 + lambda1||alpha||_1 +0.5 lambda2||alpha||_2^2
+    
+    >>> A = LASSO(plambda = 1).encode(ary(randn(64, 1000)), ary(randn(64, 5)))
+    
+    """
     def __init__(self, plambda, max_iter = 1000, **kwds):
         self.plambda = plambda
         self.iter = max_iter
         self.spams_param = {
-            # Solve min_{alpha} 0.5||x-Dalpha||_2^2 + lambda1||alpha||_1 +0.5 lambda2||alpha||_2^2
             'mode':      2,  
             'lambda1':   plambda,
             'lambda2':   0,
@@ -26,9 +35,10 @@ class LASSO(Base):
         super(LASSO, self).__init__(**kwds)
     
     def encode(self, X, A):
-        S = lasso(X, A, return_reg_path = False)
+        S = lasso(X, A, return_reg_path = False, **self.spams_param)
+        S = S.todense()
         S[S<0]=0
-        return asmatrix(S)
+        return asmatrix(ary(S))
 
 class SOMP(Base):
     def __init__(self, K = 3, **kwds):
@@ -61,7 +71,7 @@ class KSparse(Base):
             idx = argmax(S0, axis=0)
             S[idx,js]=S0[idx,js]
             S0[idx,js]=0
-        return asmatrix(S)
+        return asmatrix(ary(S))
 
 
 if __name__ == '__main__':
