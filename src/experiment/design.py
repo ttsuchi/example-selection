@@ -75,7 +75,14 @@ class Design(object):
         self.updater = updater       
 
     def name(self):
-        return string.join([o.__class__.__name__ for o in [self.selector, self.encoder, self.updater]], '-')
+        objs = []
+        if len(set(map(lambda design: design.selector, self.experiment.designs))) > 1:
+            objs.append(self.selector)
+        if len(set(map(lambda design: design.encoder, self.experiment.designs))) > 1:
+            objs.append(self.encoder)
+        if len(set(map(lambda design: design.updater, self.experiment.designs))) > 1:
+            objs.append(self.updater)
+        return string.join([obj.__class__.__name__ for obj in objs], '-')
 
 class State:
     """Represents a state in the dictionary learning iteration.
