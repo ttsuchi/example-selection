@@ -4,9 +4,8 @@ Demo experiment: simple dictionary learning based on random dictionaries.
 
 @author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
 '''
-from data.observable import FromDictionaryL1
+from data.generator import FromDictionaryL1
 from data.dictionary import Random
-
 from algorithms.selection import Unif, MXGD
 from algorithms.encoding import KSparse
 from algorithms.updating import GD

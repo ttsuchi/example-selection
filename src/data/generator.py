@@ -63,7 +63,7 @@ class FromDictionary(Base):
         self.snr        = snr        # Signal-to-noise ratio in dB
         super(FromDictionary, self).__init__(p = dictionary.p, K = dictionary.K, **kwds)
     
-    def sample(self):
+    def generate(self):
         S = self.generate_S()
         X = self.dictionary.A*S
         return mtr(whiten(X) + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr))
@@ -86,7 +86,7 @@ class FromDictionaryL1(FromDictionary):
     
     >>> assert_equal(Xgen.p, 4); assert_equal(Xgen.K, 100); assert_equal(Xgen.lambdaS, 0.5); assert_equal(Xgen.N, 500)
     
-    >>> assert_equal(Xgen.sample().shape, (Xgen.P, Xgen.N))
+    >>> assert_equal(Xgen.generate().shape, (Xgen.P, Xgen.N))
     
     >>> assert_array_less(-Xgen.generate_S(), zeros((100, 500))+spacing(1)) # Make sure all are non-negative
 
@@ -101,11 +101,11 @@ class FromDictionaryL1(FromDictionary):
 class FromImageDataset(Base):
     """Generate samples from the IMAGES.mat file from http://redwood.berkeley.edu/bruno/sparsenet/.
     
-    >>> Xgen = FromImageDataset('../contrib/sparsenet/IMAGES.mat', p = 16, K=192)
+    >>> Xgen = FromImageDataset('../../contrib/sparsenet/IMAGES.mat', p = 16, K=192)
     
-    >>> assert_equal(Xgen.sample().shape, (256, Xgen.N))
+    >>> assert_equal(Xgen.generate().shape, (256, Xgen.N))
     
-    >>> print isfortran(Xgen.sample())
+    >>> print isfortran(Xgen.generate())
     True
     
     """
@@ -114,7 +114,7 @@ class FromImageDataset(Base):
         super(FromImageDataset, self).__init__(**kwds)
         self.images = loadmat(images_mat)['IMAGES']
 
-    def sample(self):
+    def generate(self):
         image_size, _, num_images = self.images.shape
         this_image = self.images[:, :, randint(num_images)].squeeze()
         BUFF = 4

@@ -47,17 +47,17 @@ class Experiment(object):
     
     SAVE_DIR='../results/'
     
-    def __init__(self, name, observables, selectors = None, encoders = None, updaters = None, designs = None, **kwds):
+    def __init__(self, name, generator, selectors = None, encoders = None, updaters = None, designs = None, **kwds):
         self.name = name
-        self.observables = observables
-        self.Astar =  self.observables.dictionary.A if hasattr(self.observables, 'dictionary') else None
+        self.generator = generator
+        self.Astar =  self.generator.dictionary.A if hasattr(self.generator, 'dictionary') else None
 
         if designs is None:
             designs = [Design(self, selector, encoder, updater) for selector, encoder, updater in itertools.product(selectors, encoders, updaters)]
         self.designs = designs
 
         # Initial dictionary set
-        A = Random(observables.p, observables.K, sort = False).A
+        A = Random(generator.p, generator.K, sort = False).A
         
         self.As     = [mtr(A.copy()) for _ in designs]
         self.Xs     = []
@@ -74,7 +74,7 @@ class Experiment(object):
             start = time.time()
             
             # Generate mini-batches
-            X = self.observables.sample()
+            X = self.generator.generate()
             
             # Perform the update
             results = executor(update_with, X, self.As, self.designs, self.itr)

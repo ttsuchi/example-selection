@@ -4,8 +4,7 @@ Learn a small set of dictionaries from the same dataset used in SPARSENET.
 
 @author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
 '''
-from data.observable import FromImageDataset
-
+from data.generator import FromImageDataset
 from algorithms.selection import Unif, MagS, MagD, MXGS, MXGD
 from algorithms.encoding import LASSO, KSparse
 from algorithms.updating import GD
