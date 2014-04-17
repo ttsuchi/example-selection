@@ -8,7 +8,7 @@ from numpy.random import randn, randint
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 from numpy.random import rand
 
-from common import mtr
+from inc.common import mtr
 
 import matplotlib.cm as cmx
 

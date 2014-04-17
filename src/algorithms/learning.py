@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from munkres import Munkres
 
-from common import mtr
+from inc.common import mtr
 from data.dictionary import normalize
 
 def evaluate_loss(X, A, S, idx, Astar = None):

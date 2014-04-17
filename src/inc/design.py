@@ -15,9 +15,8 @@ import os
 
 from data.dictionary import Random, to_image
 from algorithms.learning import update_with
-from experiment.execution import Serial
-
-from common import mtr
+from inc.common import mtr
+from inc.execution import Serial
 
 import datetime
 import time
@@ -67,13 +66,10 @@ class Experiment(object):
         self.itr    = 0
         self.elapsed = 0.0
 
-    def run(self, num_iter, save_every = 10, plot_every = 10, executor = Serial()):
+    def run(self, num_iter, executor):
         """Executes the dictionary learning experiment.
         """
         
-        # Don't plot on a headless environment
-        do_plot = os.environ.has_key('DISPLAY') and plot_every > 0
-       
         while self.itr < num_iter:
             start = time.time()
             
@@ -90,29 +86,22 @@ class Experiment(object):
             self.stats = self.stats.append({'elapsed': self.elapsed}, ignore_index = True)
             self.itr += 1
 
-            if save_every > 0 and (self.itr % save_every == 1):
-                self.save()
-
-            if do_plot and (self.itr % plot_every == 1):
-                self.plot()
-
-            print("iter=%3d / %3d, %f[s] elapsed, estimated finish at %s\n" % 
-                  (self.itr, num_iter, self.elapsed, self.estimated_finish(num_iter)))
-
-        self.save()
-
-        if do_plot:
-            print "Done, close the figures to exit"
-            plt.waitforbuttonpress()
+            yield self
 
     def save(self):
-        with open(Experiment.SAVE_DIR + self.name + '.pkl', 'wb') as fout:
+        file_name = Experiment.SAVE_DIR + self.name + '.pkl'
+        with open(file_name, 'wb') as fout:
             pickle.dump(self, fout)
+        return file_name
 
     @classmethod
     def load(cls, name):
-        with open(Experiment.SAVE_DIR + name + '.pkl', 'r') as fin:
-            return pickle.load(fin)
+        file_name = Experiment.SAVE_DIR + name + '.pkl'
+        if os.path.isfile(file_name):
+            with open(file_name, 'r') as fin:
+                return pickle.load(fin)
+        else:
+            return None
 
     def estimated_finish(self, num_iter):
         mean_elapsed = self.stats['elapsed'].mean()

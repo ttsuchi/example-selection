@@ -7,7 +7,7 @@ from numpy import *
 from numpy.random import randn
 from spams import lasso, somp
 
-from common import ary
+from inc.common import mtr
 
 class Base(object):
     def __init__(self, **kwds):
@@ -38,7 +38,7 @@ class LASSO(Base):
         S = lasso(X, A, return_reg_path = False, **self.spams_param)
         S = S.todense()
         S[S<0]=0
-        return asmatrix(ary(S))
+        return mtr(S)
 
 class SOMP(Base):
     def __init__(self, K = 3, **kwds):
@@ -71,7 +71,7 @@ class KSparse(Base):
             idx = argmax(S0, axis=0)
             S[idx,js]=S0[idx,js]
             S0[idx,js]=0
-        return asmatrix(ary(S))
+        return mtr(S)
 
 
 if __name__ == '__main__':

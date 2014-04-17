@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose, assert_equal
 from data.dictionary import normalize
 
 from algorithms.encoding import KSparse
-from common import mtr
+from inc.common import mtr
 
 class InverseEta(object):
     """A function object that produces learning rates that decay with O(t^-1).

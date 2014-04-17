@@ -12,7 +12,7 @@ from scipy.io import loadmat
 
 from dictionary import Random
 
-from common import mtr
+from inc.common import mtr
 
 def whiten(X):
     """Whiten the signal X so that it has zero mean and zero cross-correlation.
