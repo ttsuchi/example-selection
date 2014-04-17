@@ -21,7 +21,7 @@ class LASSO(Base):
     >>> A = LASSO(plambda = 1).encode(ary(randn(64, 1000)), ary(randn(64, 5)))
     
     """
-    def __init__(self, plambda, max_iter = 1000, **kwds):
+    def __init__(self, plambda = .1, max_iter = 1000, **kwds):
         self.plambda = plambda
         self.iter = max_iter
         self.spams_param = {

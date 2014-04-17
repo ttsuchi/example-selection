@@ -11,58 +11,16 @@ import itertools
 import string
 import pandas
 import pickle
+import os
 
 from data.dictionary import Random, to_image
 from algorithms.learning import update_with
+from experiment.execution import Serial
 
 from common import mtr
 
 import datetime
 import time
-
-from joblib import Parallel, delayed
-from tempfile import mkdtemp
-import os
-import os.path as path
-
-
-class Experiment(object):
-    def __init__(self, name, observables, selectors = None, encoders = None, updaters = None, designs = None, **kwds):
-        self.name = name
-        self.observables = observables
-        self.Astar =  self.observables.dictionary.A if hasattr(self.observables, 'dictionary') else None
-
-        if designs is None:
-            designs = [Design(self, selector, encoder, updater) for selector, encoder, updater in itertools.product(selectors, encoders, updaters)]
-        self.designs = designs
-
-    def run(self, num_iter, save_every = 10, plot_every = 10, parallel_jobs = 1):
-        """Executes the dictionary learning experiment.
-        """
-        
-        # Don't plot on a headless environment
-        do_plot = os.environ.has_key('DISPLAY') and plot_every > 0
-        
-        state = State(self)
-        
-        for _ in range(num_iter):
-            state.update(parallel_jobs)
-
-            if save_every > 0 and (state.itr % save_every == 1):
-                state.save()
-
-            if do_plot and (state.itr % plot_every == 1):
-                state.plot()
-
-            print("iter=%3d / %3d, %f[s] elapsed, estimated finish at %s\n" % 
-                  (state.itr, num_iter, state.elapsed, state.estimated_finish(num_iter)))
-
-        state.save()
-
-        if do_plot:
-            print "Done, close the figures to exit"
-            plt.waitforbuttonpress()
-
 
 class Design(object):
     """Describes a particular experiment variation with specific algorithms.
@@ -84,57 +42,76 @@ class Design(object):
             objs.append(self.updater)
         return string.join([obj.__class__.__name__ for obj in objs], '-')
 
-class State:
-    """Represents a state in the dictionary learning iteration.
+class Experiment(object):
+    """Represents a particular state in the dictionary learning iteration.
     """
     
     SAVE_DIR='../results/'
     
-    def __init__(self, experiment):
-        self.experiment = experiment
+    def __init__(self, name, observables, selectors = None, encoders = None, updaters = None, designs = None, **kwds):
+        self.name = name
+        self.observables = observables
+        self.Astar =  self.observables.dictionary.A if hasattr(self.observables, 'dictionary') else None
+
+        if designs is None:
+            designs = [Design(self, selector, encoder, updater) for selector, encoder, updater in itertools.product(selectors, encoders, updaters)]
+        self.designs = designs
 
         # Initial dictionary set
-        A = Random(experiment.observables.p, experiment.observables.K, sort = False).A
+        A = Random(observables.p, observables.K, sort = False).A
         
-        self.As     = [mtr(A.copy()) for _ in experiment.designs]
+        self.As     = [mtr(A.copy()) for _ in designs]
         self.Xs     = []
-        self.losses = [pandas.DataFrame() for _ in experiment.designs]
+        self.losses = [pandas.DataFrame() for _ in designs]
         self.stats  = pandas.DataFrame() 
         self.itr    = 0
         self.elapsed = 0.0
 
-    def update(self, parallel_jobs = 1):
-        """Performs the dictionary update step.
+    def run(self, num_iter, save_every = 10, plot_every = 10, executor = Serial()):
+        """Executes the dictionary learning experiment.
         """
-        start = time.time()
         
-        # Generate mini-batches
-        X = self.experiment.observables.sample()
+        # Don't plot on a headless environment
+        do_plot = os.environ.has_key('DISPLAY') and plot_every > 0
+       
+        while self.itr < num_iter:
+            start = time.time()
+            
+            # Generate mini-batches
+            X = self.observables.sample()
+            
+            # Perform the update
+            results = executor(update_with, X, self.As, self.designs, self.itr)
+            
+            self.As, current_losses, self.Xs = tuple(map(list, zip(*results)))
+            self.losses = map( lambda l_c: l_c[0].append(l_c[1], ignore_index = True), zip(self.losses, current_losses))
+            
+            self.elapsed = (time.time() - start)
+            self.stats = self.stats.append({'elapsed': self.elapsed}, ignore_index = True)
+            self.itr += 1
 
-        # Execute in parallel or serial        
-        designs = self.experiment.designs
-        if parallel_jobs > 1:
-            X_filename = path.join(mkdtemp(), 'X.dat')
-            Xm = memmap(X_filename, dtype = X.dtype, mode='w+', shape = X.shape)
-            Xm[:] = X[:]
-            results = Parallel(n_jobs = parallel_jobs)(delayed(update_with)(design, Xm, A) for A, design in zip(self.As, designs))
-        else:
-            results = [update_with(design, X, A) for A, design in zip(self.As, designs)]        
-        
-        self.As, current_losses, self.Xs = tuple(map(list, zip(*results)))
-        self.losses = map( lambda l_c: l_c[0].append(l_c[1], ignore_index = True), zip(self.losses, current_losses))
-        
-        self.elapsed = (time.time() - start)
-        self.stats = self.stats.append({'elapsed': self.elapsed}, ignore_index = True)
-        self.itr += 1
+            if save_every > 0 and (self.itr % save_every == 1):
+                self.save()
+
+            if do_plot and (self.itr % plot_every == 1):
+                self.plot()
+
+            print("iter=%3d / %3d, %f[s] elapsed, estimated finish at %s\n" % 
+                  (self.itr, num_iter, self.elapsed, self.estimated_finish(num_iter)))
+
+        self.save()
+
+        if do_plot:
+            print "Done, close the figures to exit"
+            plt.waitforbuttonpress()
 
     def save(self):
-        with open(State.SAVE_DIR + self.experiment.name + '.pkl', 'wb') as fout:
+        with open(Experiment.SAVE_DIR + self.name + '.pkl', 'wb') as fout:
             pickle.dump(self, fout)
 
     @classmethod
     def load(cls, name):
-        with open(State.SAVE_DIR + name + '.pkl', 'r') as fin:
+        with open(Experiment.SAVE_DIR + name + '.pkl', 'r') as fin:
             return pickle.load(fin)
 
     def estimated_finish(self, num_iter):
@@ -146,8 +123,8 @@ class State:
         return matrix(map(lambda loss: loss[column].as_matrix(), self.losses)).T
 
     def plot(self):
-        design_names = map(lambda design: design.name(), self.experiment.designs)
-        Astar = self.experiment.Astar
+        design_names = map(lambda design: design.name(), self.designs)
+        Astar = self.Astar
        
         N = 2
         N+= 0 if Astar is None else 1

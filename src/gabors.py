@@ -8,7 +8,7 @@ from data.dictionary import RandomGabors
 
 from algorithms.selection import Unif, MagS, MagD, MXGS, MXGD
 from algorithms.encoding import KSparse
-from algorithms.updater import GD
+from algorithms.updating import GD
 from experiment.design import Experiment
 
 def main():
@@ -16,9 +16,9 @@ def main():
     selectors = [cls(100) for cls in [Unif, MagS, MagD, MXGS, MXGD]]
     encoder = KSparse(K = 3)
     updater = GD(encoder)
-    experiment = Experiment('gabors', FromDictionaryL1(true_dictionary, N = 5000),
+    experiment = Experiment('gabors', FromDictionaryL1(true_dictionary),
                             selectors = selectors, encoders = [encoder], updaters = [updater])
-    experiment.run(200, parallel_jobs = 1, save_every = 5, plot_every = 5)
+    experiment.run(1000)
         
 if __name__ == '__main__':
     main()

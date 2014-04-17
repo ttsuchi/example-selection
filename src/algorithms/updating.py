@@ -11,6 +11,41 @@ from data.dictionary import normalize
 from algorithms.encoding import KSparse
 from common import mtr
 
+class InverseEta(object):
+    """A function object that produces learning rates that decay with O(t^-1).
+
+    >>> eta = InverseEta(vmax = .1, vmin = .001, half_life = 200)
+    
+    >>> assert_allclose(.1, eta(0)); assert_allclose(.001, eta(1e12))
+
+    >>> assert_allclose(.001 + (.1 - .001) / 2, eta(200))
+    """
+    def __init__(self, vmax = .1, vmin = 0, half_life = 200):
+        self.vmax = vmax
+        self.vmin = vmin
+        self.half_life = float(half_life)
+
+    def __call__(self, itr):
+        return (self.vmax - self.vmin) / (1 + float(itr) / self.half_life) + self.vmin
+
+class ExpDecayEta(object):
+    """A function object that produces exponentially decaying eta with respect to the iterations.
+    
+    >>> eta = ExpDecayEta(vmax = .1, vmin = .001, half_life = 200)
+    
+    >>> assert_allclose(.1, eta(0)); assert_allclose(.001, eta(10000))
+
+    >>> assert_allclose(.001 + (.1 - .001) / 2, eta(200))
+
+    """
+    def __init__(self, vmax = .1, vmin = .001, half_life = 200):
+        self.vmax = vmax
+        self.vmin = vmin
+        self.half_life = float(half_life)
+    
+    def __call__(self, itr):
+        return self.vmin + power(2, -float(itr)/self.half_life) * (self.vmax - self.vmin)
+
 class Base(object):
     def __init__(self, encoder, num_iter = 100, **kwds):
         self.encoder = encoder
@@ -31,13 +66,14 @@ class GD(Base):
         self.eta = eta
         super(GD, self).__init__(encoder, **kwds)
     
-    def update(self, X, A):
+    def update(self, X, A, itr):
         K = A.shape[1]
         for _ in range(self.num_iter):
             S = self.encoder.encode(X, A)
             Xr= A*S
             Gr= (Xr-X) * S.T / S.shape[1]
-            A = A - self.eta / K * Gr
+            eta = self.eta(itr) if hasattr(self.eta, '__call__') else self.eta
+            A = A - eta / K * Gr
             A = mtr(normalize(A))
 
         return A
@@ -48,7 +84,7 @@ class KSVD(Base):
     def __init__(self, encoder, **kwds):
         super(KSVD, self).__init__(encoder, **kwds)
     
-    def update(self, X, A):
+    def update(self, X, A, itr):
         # TODO write this
         return mtr(A)
 

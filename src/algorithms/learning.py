@@ -47,7 +47,7 @@ def evaluate_loss(X, A, S, idx, Astar = None):
 
     return loss, newA
 
-def update_with(design, X, A):
+def update_with(design, X, A, itr):
     """Return a new dictionary using the examples picked by the current selection policy.
     """
     stats = {}
@@ -60,7 +60,7 @@ def update_with(design, X, A):
     
     # Update dictionary using these examples
     Xp = mtr(X[:, idx])
-    newA = design.updater.update(Xp, A)
+    newA = design.updater.update(Xp, A, itr)
     delta = newA - A
     stats['std'] = sqrt(mean(multiply(delta, delta)))
     
