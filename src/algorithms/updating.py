@@ -62,7 +62,7 @@ class GD(Base):
     >>> assert_equal(updater.encoder, encoder)
     """
 
-    def __init__(self, encoder, eta = .1, **kwds):
+    def __init__(self, encoder, eta = InverseEta(), **kwds):
         self.eta = eta
         super(GD, self).__init__(encoder, **kwds)
     

@@ -34,14 +34,14 @@ def main(name, subname, num_iter, parallel_jobs, save_every, plot_every):
     # Run the experiment up to num_iter
     for state in experiment.run(num_iter, executor):
         if save_every > 0 and (state.itr % save_every == 1):
-            save_file = state.save()
-            print "saving to %s" % save_file
+            state.save()
 
         if do_plot and (state.itr % plot_every == 1):
             state.plot()
 
-        print("iter=%3d / %3d, %f[s] elapsed, estimated finish at %s" % 
+        sys.stdout.write("iter=%3d / %3d, %f[s] elapsed, estimated finish at %s\r" % 
               (state.itr, num_iter, state.elapsed, state.estimated_finish(num_iter)))
+        sys.stdout.flush()
 
     experiment.save()
 
