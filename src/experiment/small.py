@@ -13,7 +13,7 @@ from inc.design import Experiment
 
 def create(name):
     true_dictionary = RandomGabors(p = 6, K = 36)
-    selectors = [cls(100) for cls in [Unif, MXGD]]
+    selectors = [cls(100) for cls in [Unif, MagS, MagD, MXGS, MXGD]]
     plambda = .1
     encoders = [LASSO(plambda)]
     updater = GD(encoders[0], eta = InverseEta(half_life = 200))

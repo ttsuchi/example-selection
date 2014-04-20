@@ -6,11 +6,11 @@ Runs the experiment.
 '''
 from importlib import import_module
 from inc.design import Experiment
-from inc.execution import Serial, Parallel
+from inc.execution import Serial, IParallel
 
 import matplotlib.pyplot as plt
 
-def main(name, subname, num_iter, parallel_jobs, save_every, plot_every):
+def main(name, subname, num_iter, save_every, plot_every, parallel = False):
     experiment_name = name + '-' + subname
     
     # Either load the existing experiment or create a new one
@@ -23,10 +23,10 @@ def main(name, subname, num_iter, parallel_jobs, save_every, plot_every):
     else:
         print "Loaded %s, starting with iteration = %d" % (experiment_name, experiment.itr)
 
-    if parallel_jobs == 1:
-        executor = Serial()
+    if parallel:
+        executor = IParallel()
     else:
-        executor = Parallel(parallel_jobs)
+        executor = Serial()
     
     # Don't plot on a headless environment
     do_plot = os.environ.has_key('DISPLAY') and plot_every > 0
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('name',            help='experiment name corresponding to the module name under the "experiment" package')
     parser.add_argument('subname',         nargs='?',           default='',   help='experiment sub-name, used to distinguish the save files')
     parser.add_argument('num_iter',        nargs='?', type=int, default=1000, help='number of iterations')
-    parser.add_argument('--parallel_jobs', nargs='?', type=int, default=1,  metavar='P', help='executes using P processes')
+    parser.add_argument('-p','--parallel',                      default=False, help='executes using IPython.parallel', action='store_true')
     parser.add_argument('--save_every',    nargs='?', type=int, default=10, metavar='N', help='save every N iterations')
     parser.add_argument('--plot_every',    nargs='?', type=int, default=10, metavar='N', help='plot every N iterations')
 

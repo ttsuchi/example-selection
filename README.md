@@ -90,6 +90,19 @@ For instance, run the short demo:
 
 The "name" corresponds to the module name under the "experiment." package, which defines what kind of experiment to run. So this runs the experiment defined by "experiment.demo" module, and saves the result in results/demo-short.pkl file.
 
+To execute in parallel mode, first start the IPython cluster:
+
+```
+ipcluster start -n 5 --daemon
+```
+
+Then run the code using the parallel executor:
+
+```
+./run.py -p small parallel 1000
+```
+
+
 For debugging library issues:
 
 ```
