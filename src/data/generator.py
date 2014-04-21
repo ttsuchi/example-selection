@@ -30,6 +30,7 @@ def whiten(X):
     X = asmatrix(X - mean(asmatrix(X),axis=1))
     C = X * X.T / X.shape[1]
     d, V = eigh(C)
+    d[d<0] = 0 # In case d returns very small negative eigenvalues
     return (V / sqrt(d+spacing(1))) * V.T * X
 
 def snr_to_sigma(snr):
