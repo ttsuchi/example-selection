@@ -37,13 +37,15 @@ def evaluate_loss(X, A, S, idx, Astar = None):
         newA = mtr(A.copy())
     else:
         # Calculate conformity
-        C = 1 - abs(Astar.T * A)
+        C = - Astar.T * A
+        assert all(isfinite(C))
         idx = Munkres().compute(C.tolist())
         newA = mtr(zeros(A.shape))
         for r, c in idx:
             newA[:, r] = A[:, c]
 
-        loss['conformity'] = mean(abs(Astar.T * newA))
+        D = Astar - newA
+        loss['distance'] = mean(multiply(D, D))
 
     return loss, newA
 

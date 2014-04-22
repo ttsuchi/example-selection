@@ -10,11 +10,11 @@ from inc.execution import Serial, IParallel
 
 import matplotlib.pyplot as plt
 
-def main(name, subname, num_iter, save_every, plot_every, parallel = False):
+def main(name, subname, num_iter, save_every, plot_every, parallel = False, clean = False):
     experiment_name = name + '-' + subname
     
     # Either load the existing experiment or create a new one
-    experiment = Experiment.load(experiment_name)
+    experiment = None if clean else Experiment.load(experiment_name)
     if experiment is None:
         print "Creating %s" % experiment_name
         experiment_module = import_module("experiment." + name)
@@ -47,7 +47,8 @@ def main(name, subname, num_iter, save_every, plot_every, parallel = False):
 
     if do_plot:
         experiment.plot()
-        print "Done, close the figures to exit"
+        sys.stdout.write("\n\nDone, close the figures to exit\n");
+        sys.stdout.flush()
         plt.waitforbuttonpress()
     
 if __name__ == '__main__':
@@ -61,6 +62,7 @@ if __name__ == '__main__':
     parser.add_argument('subname',         nargs='?',           default='',   help='experiment sub-name, used to distinguish the save files')
     parser.add_argument('num_iter',        nargs='?', type=int, default=1000, help='number of iterations')
     parser.add_argument('-p','--parallel',                      default=False, help='executes using IPython.parallel', action='store_true')
+    parser.add_argument('-c','--clean',                         default=False, help='starts the experiment from fresh', action='store_true')
     parser.add_argument('--save_every',    nargs='?', type=int, default=10, metavar='N', help='save every N iterations')
     parser.add_argument('--plot_every',    nargs='?', type=int, default=10, metavar='N', help='plot every N iterations')
 

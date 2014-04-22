@@ -8,6 +8,7 @@ from numpy.linalg import eigh
 from numpy.random import randn, rand, randint
 from numpy.testing import assert_allclose, assert_equal, assert_array_less
 
+from scipy.sparse import csc_matrix
 from scipy.io import loadmat
 
 from dictionary import Random
@@ -67,18 +68,27 @@ class FromDictionary(Base):
     def generate(self):
         S = self.generate_S()
         X = self.dictionary.A*S
-        return mtr(whiten(X) + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr))
+        return mtr(X + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr))
 
 class FromDictionaryL0(FromDictionary):
     """Generate examples from a set of "ground-truth" dictionary elements, using L0 sparsity
+
+    >>> Astar = Random(4, 100, sort=False); Xgen = FromDictionaryL0(Astar, nnz = 2)
+    
+    >>> assert_equal(Xgen.p, 4); assert_equal(Xgen.K, 100)
+    
+    >>> assert_equal(sum(Xgen.generate_S()), 2*Xgen.N)
+
     """
     def __init__(self, dictionary, nnz = 3, **kwds):
         self.nnz = nnz  # Sparsity
         super(FromDictionaryL0, self).__init__(dictionary, **kwds)
     
     def generate_S(self):
-        # TODO implement this
-        pass
+        rows = randint(self.dictionary.K, size=self.N*self.nnz)
+        cols = arange(self.N).repeat(self.nnz)
+        data = ones(self.N*self.nnz)
+        return mtr(csc_matrix((data, (rows, cols)), shape=(self.dictionary.K, self.N)).todense())
 
 class FromDictionaryL1(FromDictionary):
     """Generate examples from a set of "ground-truth" dictionary elements, using L1 sparsity

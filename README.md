@@ -30,6 +30,7 @@ spams [http://spams-devel.gforge.inria.fr/](http://spams-devel.gforge.inria.fr/)
 
 my fork of SaliencyMap [https://github.com/ttsuchi/saliency-map](https://github.com/ttsuchi/saliency-map)
 
+zmq
 
 ### Installation
 
@@ -41,10 +42,10 @@ sudo port install opencv +python27
 ```
 
 
-Install pandas, munkres and SaliencyMap with:
+Install pandas, munkres, zmq and SaliencyMap with:
 
 ```
-sudo pip install pandas munkres
+sudo pip install pandas munkres ipython pyzmq tornado
 sudo pip install git+https://github.com/ttsuchi/saliency-map
 ```
 

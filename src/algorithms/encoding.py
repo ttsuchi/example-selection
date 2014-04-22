@@ -13,6 +13,28 @@ class Base(object):
     def __init__(self, **kwds):
         pass
 
+    def encode(self, X, A):
+        """Clean up and equalize the variance.
+        """
+        S = self._encode(X,A)
+        S[S<0]=0
+        # S = abs(S + .01 * mean(S) * randn(S.shape[0], S.shape[1]))
+        S = asmatrix(S)
+        
+        # Equalize the variance
+        s = std(S, axis=1)
+        assert s.shape == (S.shape[0], 1)
+
+        if any(abs(s) < 1e-12):
+            # Re-shuffle the activations
+            S = abs(S + .1 * randn(S.shape[0], S.shape[1]))
+            s = std(S, axis=1)
+
+        # m = mean(s)
+        # s = (s - m) * .8 + m
+        return mtr(S / s)
+        
+
 class LASSO(Base):
     """Solve the LASSO problem using the SPAMS package:
 
@@ -34,29 +56,27 @@ class LASSO(Base):
             }
         super(LASSO, self).__init__(**kwds)
     
-    def encode(self, X, A):
+    def _encode(self, X, A):
         S = lasso(X, A, return_reg_path = False, **self.spams_param)
-        S = S.todense()
-        S[S<0]=0
-        return mtr(S)
+        return S.todense()
 
 class SOMP(Base):
     def __init__(self, K = 3, **kwds):
         self.K = K
         super(SOMP, self).__init__(**kwds)
         
-    def encode(self, X, A):
+    def _encode(self, X, A):
         # Solve min_{A_i} ||A_i||_{0,infty}  s.t  ||X_i-D A_i||_2^2 <= eps*n_i
-        ind_groups = array(xrange(0, X.shape[1], 10), dtype=int64)
+        ind_groups = arange(0, X.shape[1], 10, dtype=int64)
         S=somp(X, A, ind_groups,L=self.K,numThreads=-1)
-        return asmatrix(S)
+        return S.todense()
 
 class KSparse(Base):
     def __init__(self, K = 3, **kwds):
         self.K = K
         super(KSparse, self).__init__(**kwds)
 
-    def encode(self, X, A):
+    def _encode(self, X, A):
         """Picks the top K maximum activations for each column.
         
         >>> print KSparse(K=2).encode(X=matrix([[1,6,7],[2,5,9],[3,4,8]]), A=eye(3))
@@ -71,7 +91,7 @@ class KSparse(Base):
             idx = argmax(S0, axis=0)
             S[idx,js]=S0[idx,js]
             S0[idx,js]=0
-        return mtr(S)
+        return S
 
 
 if __name__ == '__main__':

@@ -75,7 +75,8 @@ class Experiment(object):
             
             # Generate mini-batches
             X = self.generator.generate()
-            
+            assert all(isfinite(X))
+
             # Perform the update
             results = executor(update_with, X, self.As, self.designs, self.itr)
             
@@ -166,8 +167,8 @@ class Experiment(object):
 
         if Astar is not None:
             plt.subplot(N,1,4)
-            plt.plot(self.history('conformity'))
-            plt.title("Average conformity")
+            plt.plot(self.history('distance'))
+            plt.title("average distance from the true dictionary")
         
         plt.subplot(N,1,N)
         plt.plot(zeros((2,len(design_names))))
