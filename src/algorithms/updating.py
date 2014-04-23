@@ -8,7 +8,7 @@ from numpy import power
 from numpy.testing import assert_allclose, assert_equal
 from data.dictionary import normalize
 
-from algorithms.encoding import KSparse
+from algorithms.encoding import equalize_activities, KSparse
 from inc.common import mtr
 
 class InverseEta(object):
@@ -70,6 +70,7 @@ class GD(Base):
         K = A.shape[1]
         for _ in range(self.num_iter):
             S = self.encoder.encode(X, A)
+            S = equalize_activities(S)
             Xr= A*S
             Gr= (Xr-X) * S.T / S.shape[1]
             eta = self.eta(itr) if hasattr(self.eta, '__call__') else self.eta

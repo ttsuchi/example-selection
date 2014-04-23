@@ -9,6 +9,26 @@ from spams import lasso, somp
 
 from inc.common import mtr
 
+def equalize_activities(S, eq_factor = .5):
+    """Equalizes the activity.
+    When eq_factor is closer to 1, more equalization takes place
+    """
+    m = mean(S, axis=1)
+    assert m.shape == (S.shape[0], 1)
+    
+    dead_idx=m < 1e-12
+    if any(dead_idx):
+        # Fill zero activations with random activations centered around the mean
+        if all(dead_idx):
+            S = asmatrix(abs(randn(S.shape[0], S.shape[1])))
+        else:
+            S[nonzero(dead_idx), :] = abs(mean(m) + std(S) * randn(nonzero(dead_idx)[0].size, S.shape[1]))
+        m = mean(S, axis=1)
+
+    # Try to equalize variance of mean
+    return mtr(multiply(S, power((mean(m) / m) , eq_factor)))
+
+
 class Base(object):
     def __init__(self, **kwds):
         pass
@@ -18,22 +38,7 @@ class Base(object):
         """
         S = self._encode(X,A)
         S[S<0]=0
-        # S = abs(S + .01 * mean(S) * randn(S.shape[0], S.shape[1]))
-        S = asmatrix(S)
-        
-        # Equalize the variance
-        s = std(S, axis=1)
-        assert s.shape == (S.shape[0], 1)
-
-        if any(abs(s) < 1e-12):
-            # Re-shuffle the activations
-            S = abs(S + .1 * randn(S.shape[0], S.shape[1]))
-            s = std(S, axis=1)
-
-        # m = mean(s)
-        # s = (s - m) * .8 + m
-        return mtr(S / s)
-        
+        return mtr(S)        
 
 class LASSO(Base):
     """Solve the LASSO problem using the SPAMS package:
