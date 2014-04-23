@@ -11,7 +11,7 @@ from algorithms.updating import GD
 from inc.design import Experiment
 
 def create(name):
-    selectors = [cls(100) for cls in [MXGD]]
+    selectors = [cls(100) for cls in [Unif, MagS, MagD, MXGS, MXGD]]
     plambda = 0.1
     encoders = [LASSO(plambda)]
     updater = GD(encoders[0])
