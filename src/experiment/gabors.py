@@ -12,8 +12,8 @@ from algorithms.updating import GD
 from inc.design import Experiment
 
 def create(name):
-    true_dictionary = RandomGabors(p = 6, K = 13*13)
-    selectors = [cls(100) for cls in [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap]]
+    true_dictionary = RandomGabors(p = 12, K = 12*12)
+    selectors = [cls(200) for cls in [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap]]
     encoder = KSparse(K = 3)
     updater = GD(encoder)
     return Experiment(name, FromDictionaryL1(true_dictionary),
