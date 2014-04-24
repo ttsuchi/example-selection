@@ -6,14 +6,14 @@ Experiment 1: learn Gabor filter-generated samples.
 '''
 from data.generator import FromDictionaryL1
 from data.dictionary import RandomGabors
-from algorithms.selection import Unif, MagS, MagD, MXGS, MXGD
+from algorithms.selection import Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap
 from algorithms.encoding import KSparse
 from algorithms.updating import GD
 from inc.design import Experiment
 
 def create(name):
     true_dictionary = RandomGabors(p = 6, K = 13*13)
-    selectors = [cls(100) for cls in [Unif, MagS, MagD, MXGS, MXGD]]
+    selectors = [cls(100) for cls in [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap]]
     encoder = KSparse(K = 3)
     updater = GD(encoder)
     return Experiment(name, FromDictionaryL1(true_dictionary),

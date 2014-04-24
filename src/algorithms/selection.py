@@ -58,7 +58,12 @@ def select_per_dictionary(G):
     Rf=squeeze(asarray(R.T.flatten())) # Get indices column-wise
     _,idx=unique(Rf, return_index=True)
     return Rf[sort(idx)]
-    
+
+class UsedD(Base):
+    """Returns examples that use the dictionary element; similar to the algorithm used in K-SVD.
+    """
+    def select(self, X, A, S):
+        return select_per_dictionary(S>0)[:self.n]
 
 class MagS(Base):
     def select(self, X, A, S):
