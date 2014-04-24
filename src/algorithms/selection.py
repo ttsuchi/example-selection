@@ -7,6 +7,10 @@ from numpy import *
 from numpy.random import permutation
 from numpy.testing import assert_allclose
 
+import scipy.ndimage.filters 
+
+import cv2 as cv
+
 class Base(object):
     def __init__(self, n, **kwds):
         self.n = n
@@ -73,6 +77,45 @@ class MXGD(Base):
     def select(self, X, A, S):
         G=abs(multiply(sum(A*S-X,axis=0),S)) # Auto-broadcasted to the shape of S
         return select_per_dictionary(G)[:self.n]
+
+class SalMap(Base):
+    """Simplified implementation of the saliency map selection.
+    Since each example has a single channel (grayscale) and is very small, will only use the "intensity" and "orientation" channels at a single scale.
+    """
+    def __init__(self, n, **kwds):
+        super(SalMap, self).__init__(n, **kwds)
+        self.kernels = None
+    
+    def _normalize(self, M):
+        """Implements the map normalization operator. Since the patches are small, we only perform the range normalization.
+        """
+        N = M - M.min()
+        N = N / N.max()  # Normalize to [0,1]
+        return N
+    
+    def select(self, X, A, S):
+        P, N = X.shape
+        p = int(sqrt(P))
+        
+        # "Intensity" is just the input
+        I = self._normalize(abs(X))
+
+        # Apply gabor filters to get the orientation channel
+        if self.kernels is None:
+            self.kernels = [cv.getGaborKernel((p, p), p / 2, pi * angle / 4, p, 1) for angle in [0, 45, 90, 135]]
+        
+        Xs = zeros((p, p*N))
+        for n in range(N):
+            Xs[:, p*n:(p*n+p)] = X[:,n].reshape((p,p))
+
+        Os = self._normalize(reduce(add, [self._normalize(cv.filter2D(Xs, cv.CV_32F, kernel)) for kernel in self.kernels]))
+   
+        O = zeros((P, N))
+        for n in range(N):
+            O[:, n] = Os[:,p*n:(p*n+p)].reshape((P))
+        
+        G=.5 * (I + O)
+        return select_by_sum(G)[:self.n]
 
 if __name__ == '__main__':
     import doctest
