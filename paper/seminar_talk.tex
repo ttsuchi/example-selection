@@ -1,0 +1,713 @@
+\documentclass{beamer}
+\usepackage{lmodern}
+\usepackage[absolute,overlay]{textpos} 
+\usepackage[figurename=]{caption}
+\usepackage{hanging,multirow,verbatim,graphicx,amsmath,mathabx,subfigure,verbatim}
+%\usepackage{biblatex}
+\usepackage{natbib}
+
+\usepackage{tikz,pgfplots}
+\usepackage[autoplay]{animate}
+\usetikzlibrary{arrows,patterns,positioning,fit,backgrounds,shapes} 
+\usetikzlibrary{shapes.callouts,decorations.pathmorphing}
+\pgfplotsset{compat=newest} 
+\pgfplotsset{plot coordinates/math parser=false}
+\newlength\figurewidth 
+\newlength\figureheight
+
+\usepackage{mathptmx,helvet}
+\usefonttheme{professionalfonts} 
+\usecolortheme{rose}
+\setbeamertemplate{footnote}{%
+  \hangpara{2em}{1}%
+  \makebox[2em][l]{\insertfootnotemark}\footnotesize\insertfootnotetext\par%
+}
+\beamertemplatenavigationsymbolsempty
+\setbeamertemplate{footline}[page number]
+
+\def\vcent#1{\mathsurround0pt$\vcenter{\hbox{#1}}$}
+
+\DeclareMathOperator*{\E}{\mathop{\mathbb{E}}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+
+\definecolor{mycolor1}{rgb}{0,0.5,0}
+\definecolor{mycolor2}{rgb}{0,0.75,0.75}
+\definecolor{mycolor3}{rgb}{0.75,0,0.75}
+\setbeamercolor{upred}{fg=black,bg=red}
+\setbeamercolor{lowred}{fg=black,bg=red!40}
+\setbeamercolor{upblue}{fg=black,bg=blue}
+\setbeamercolor{lowblue}{fg=black,bg=blue!40}
+\setbeamercolor{upyellow}{fg=black,bg=yellow}
+\setbeamercolor{lowyellow}{fg=black,bg=yellow!40}
+
+\graphicspath{{images/}{../figures/}}
+
+%\logo{\includegraphics[width=1cm,height=1cm,keepaspectratio]{ucsd_logo.png}}
+\title{Effect of Active Example Selection \\ On Dictionary Learning}
+\author{Tomoki Tsuchida}
+\institute{University of California, San Diego\\
+Computer Science and Engineering}
+\date{May 5, 2014}
+
+\begin{document}
+\tikzstyle{every picture}+=[remember picture]
+\tikzstyle{na} = [baseline=-.5ex]
+
+\AtBeginSection[]{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection,currentsubsection]
+  \end{frame}
+}
+
+% Small footnotes
+\let\oldfootnotesize\footnotesize
+\renewcommand*{\footnotesize}{\oldfootnotesize\tiny}
+
+%! Title page
+\begin{frame}
+\titlepage
+\end{frame}
+
+\section{Motivation}
+
+\begin{frame}{Motivation}
+
+The world contains an overabundance of sensory information \cite{Tsotsos:1990vv}.
+
+\begin{itemize}
+	\item The putative goal of \emph{attention}, overt and covert, is to filter sensory information in order to process only \emph{important} aspects of the world.
+
+\end{itemize}
+
+On the other hand, in the absence of task-oriented (``top-down'') goals, we generally strive to capture the statistical structure of the world (\emph{implicit} and \emph{unsupervised} learning).
+
+\begin{itemize}
+	\item In such cases, what we consider \emph{important} (i.e. most informative aspects of the world) may change depending on what we have learned so far.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Research Questions}
+\begin{center}
+\begin{beamerboxesrounded}[lower=lowyellow,upper=upyellow,shadow=true]{}
+How does attention interact with unsupervised learning? 
+\end{beamerboxesrounded}
+\end{center}
+In particular,
+
+\begin{enumerate}
+	\item Does attention \emph{help} or \emph{hurt} unsupervised learning?
+	\item How does models of attention compare to \emph{optimal} learning strategies?
+\end{enumerate}
+
+Specifically, I examine how models of bottom-up attention (\emph{saliency}) interact with the dictionary learning task.
+
+\end{frame}
+
+\begin{frame}{Motivations}
+Why dictionary learning / sparse coding?
+
+\begin{enumerate}
+	\item It is one of the simplest models of \emph{unsupervised} feature learning.
+\begin{itemize}
+	\item Sparse coding of natural scenes has been used to explain the properties of early visual \citep{Olshausen:1996p2797} and auditory \citep{Lewicki:2002p1732} perception.
+\end{itemize}
+
+	\item It has a close relationship to Independent Component Analysis \citep{Olshausen:1996p2797}, which is used in some of the large-scale feed-forward ``deep'' unsupervised learning models \citep{Le:2011td}.
+\end{enumerate}
+
+\end{frame}
+
+\begin{frame}{Motivations}
+Why (bottom-up) saliency?
+
+\begin{enumerate}
+	\item Saliency provides one of the simplest models of example selection strategies.
+
+	\begin{itemize}
+	\item Salient regions are preferentially selected.
+\end{itemize}
+
+	\item (Bottom-up) saliency is calculated from the statistical properties of the data itself, without any additional task-related assumptions.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Comparison to Existing Fields}
+
+\begin{itemize}
+
+	\item \underline{Sparse Coding} \citep{Olshausen:1996p2797,Lewicki:2002p1732}: generally employs \emph{uniform} sampling strategies
+
+	\item \underline{Active Learning} (Optimal Experiment Design): deals with strategies for querying \emph{labels} for data (supervised learning) \citep{Settles:2010vo}
+
+	\item \underline{Saliency-Guided Object Recognition} \citep{Zhu:2012ti,Kanan:2010to}: also deals with classification and categorization as the end-goal
+
+	\item \underline{Accelerated Learning} \citep{Zhang:1994uy,Plutowski:1996vv}: similar approaches, but deals with approximating given functions
+
+
+\end{itemize}
+
+\end{frame}
+
+
+\section{Problem Formulation}
+
+\begin{frame}{Sparse Coding Problem}
+\emph{Dictionary Learning}: Given $n$ $p$-dimensional signals $X \in \R^{p \times n}$, we want to discover $k$ $p$-dimensional dictionary set $A \in \R^{p \times k}$ that minimizes the following loss:
+
+\begin{beamerboxesrounded}[lower=lowyellow,upper=upyellow,shadow=true]{}
+\begin{align*}
+L(A) = \quad &  \frac{1}{2} \left\langle\| X - A S \|_F^2\right \rangle + \phi (A), \quad S = f_{enc}(X; A)
+\end{align*}
+\end{beamerboxesrounded}
+
+\begin{itemize}
+	\item<1> $\phi(A)$: the sparsity-inducing penalty on the dictionary elements $A$.
+	\item<2> $f_{enc}(X; A)$: the \emph{encoding model} for the signal $X$.  For sparse coding, it is
+
+\begin{align*}
+	f_{enc}(X; A) &= \argmin_S \frac{1}{2} \left\langle\| X - A S \|_F^2 + \psi (S)\right \rangle,
+\end{align*}
+
+where $\psi(S)$ is the sparsity-inducing penalty on the activations $S$.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Sparse Coding Problem}
+For this project, I consider penalty functions of the form
+
+\begin{beamerboxesrounded}[lower=lowyellow,upper=upyellow,shadow=true]{}
+\begin{align*}
+\phi(A) &= \gamma \| A \|_1 = \gamma \sum_{i,j} | a_{i,j} | \\
+\psi(S) &= \lambda \| S \|_1 = \lambda \sum_{i,j} s_{i,j}, \quad s_{i,j} \ge 0
+\end{align*}
+\end{beamerboxesrounded}
+
+
+\underline{Why $l_1$-norm}? 
+
+\begin{itemize}
+	\item $l_1$-norm is the closest convex approximation to the $l_0$-norm.
+\end{itemize}
+
+\underline{Why nonnegative $s_{i,j}$}? 
+\begin{itemize}
+	\item $s_{i,j}$ represents the activation of the $i$-th ``hidden'' neuron for example $j$.  Since neuronal firing rates are nonnegative, it appears more neurally plausible to impose this constraint.
+	\item In contrast, $a_{i,j}$ represents the connection from the $i$-th ``visible'' neuron to the $j$-th ``hidden'' neuron.  Positive values represent excitatory connections, and negative values represent inhibitory connections.
+\end{itemize}
+\end{frame}
+
+%! Evaluation Criteria
+\begin{frame}{Evaluation Criteria}
+What would be a good way to evaluate what has been learned?
+
+\begin{itemize}
+	\item The choice of evaluation metric is critical for this project, since the task has no supervised component.
+
+	\item From the neurophysiological perspective, the best way would be to compare the dictionary elements learned from naturalistic data (images, audio) to the \emph{receptive field properties} for the neurons in the corresponding modality.
+
+	\item However, for this project, I focus on evaluation methods that can be calculated purely from the training data.
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}{Loss Evaluation}
+
+One way to evaluate the efficacy of learning is to look at the loss value that is minimized.
+
+Three kinds of losses that are minimized in this problem:
+
+\begin{enumerate}
+	\item \underline{Reconstruction Loss}: $L_{rec} \triangleq \frac{1}{2} \left\langle\| X - A S \|_F^2\right \rangle$
+	\item \underline{Dictionary Sparsity}: $L_{A} \triangleq  \phi(A)$
+	\item \underline{Activation Sparsity}: $L_{S} \triangleq  \langle \psi(S) \rangle $
+\end{enumerate}
+
+\begin{beamerboxesrounded}[lower=lowyellow,upper=upyellow,shadow=true]{}
+As ``good'' dictionary elements are learned, the total loss $L_{all} \triangleq L_{rec} + L_A + L_S$ should become lower.
+\end{beamerboxesrounded}
+
+\end{frame}
+
+\begin{frame}{Loss Evaluation}
+Problem with this evaluation criterion:
+
+\begin{enumerate}
+	\item This criterion does not tell us anything about how well the algorithm learns the ``true'' dictionary elements that generates $X$, or how close the encoding fidelity is against the ``best possible'' dictionary elements.
+
+	\item This criterion favors dictionaries that are overfit to the training data.
+
+\begin{itemize}
+	\item This can be circumvented by evaluating the loss against a larger training dataset than what the model has been trained.
+\end{itemize}
+\end{enumerate}
+
+\end{frame}
+
+\begin{frame}{Using Synthetic Examples}
+Alternatively, I can also start with a known ``ground-truth'' dictionary set, synthesize training data from it, and evaluate how well the algorithm learns those.
+
+\begin{itemize}
+	\item In this case, a reasonable evaluation criterion would be the distance between the true dictionary elements and generated dictionary elements.
+
+	\item As long as the ``ground-truth'' dictionary elements are sufficiently distinct, the dictionary that is close to the ground-truth \emph{should} be the one that minimizes $L_{all}$ as well.
+\end{itemize}
+
+\end{frame}
+
+\section{Learning with Active Example Selection}
+
+%! Learning Model
+\begin{frame}{Learning Model}
+How do we actually calculate $\argmin_A L(A)$ and $f_{enc}(X; A)$?
+
+\begin{itemize}
+	\item Since this project deals with the effect of active example selection on the learning efficacy, ideally I would like to use a \emph{biologically plausible} learning algorithm.
+\end{itemize}
+
+\only<1>{%
+\underline{$\argmin_A L(A)$}: Use stochastic gradient descent, given fixed ${\hat S} = f_{enc}(X; A)$:
+
+\begin{align*}
+\nabla L(A) &= (A{\hat S} - X) {\hat S}^\intercal+ \gamma \cdot sign (A) \\
+\label{eqn:updateA}
+\Longrightarrow \quad
+{\hat A} &\leftarrow {\hat A} - \eta \left(({\hat A} {\hat S} - X){\hat S}^\intercal  + \gamma \cdot sign ({\hat A}) \right)
+\end{align*}
+
+
+}%
+
+\only<2>{%
+\underline{$f_{enc}(X; A)$}: Solve the $l_1$-regularized least squares (LASSO) problem using the Least Angle Regression (LARS) algorithm \citep{Efron:2004dt} (implemented by \citet{Mairal:2010us}).
+
+\begin{itemize}
+	\item This is not a particularly ``biologically plausible'' encoding model, but I am using this algorithm for the computational efficiency.
+\end{itemize}
+
+Ideally, I would like to use more plausible encoding / decoding model, as in \citet{Ranzato:2007va}.
+}%
+
+\end{frame}
+
+%! Active Example Selection
+\begin{frame}{Learning with Active Example Selection}
+How is the learning model combined with the active example selection?
+
+\begin{beamerboxesrounded}[lower=lowyellow,upper=upyellow,shadow=true]{Definition}
+\begin{itemize}
+	\item An \emph{example selection policy} is a function that, given activations of all training examples $S_{all} = f_{enc}(X ; {\hat A})$, determines which examples to use for actual learning.
+\end{itemize}
+\end{beamerboxesrounded}
+
+For this project, I only consider static policies: 
+
+\begin{itemize}
+	\item Define a \emph{goodness function} $g(s_{i, j})$ that returns large values for activations $s_{i, j}$ considered to be ``good'' example.
+	\item The policy is to pick the top $n \ll N$ examples, ranked according to the values of $g$.
+\end{itemize}
+
+Also, I consider cases where top $n / k$ examples are chosen \emph{for each dictionary}, as well as choosing top $n$ examples according to $\sum_i g(s_{i,j})$.
+\end{frame}
+
+\begin{frame}{Learning with Active Example Selection}
+Actual learning procedure takes place as follows:
+
+\begin{enumerate}
+	\item Start with a ``large'' training data set $X \in \R^{p \times N}$
+	\item For every dictionary update step, 
+
+\begin{enumerate}
+	\item Calculate the activation for \emph{all} training data given the current estimate of dictionary ${\hat A}$: $S_{all} = f_{enc}(X ; {\hat A})$.
+
+	\item Evaluate the \emph{goodness} for each example $j$ using $S_{all}$ and pick the top $n$ examples; denote activations of these examples as $S_n$.
+
+	\item Use only $S_n$ to update ${\hat A}$.
+
+\end{enumerate}
+
+\end{enumerate}
+\end{frame}
+
+%! Maximum-Gradient Policy
+\begin{frame}{Maximal-Gradient Policy}
+
+One type of selection heuristics I consider is to pick example(s) $j$ that would produce the \emph{largest gradient}:
+
+
+\begin{beamerboxesrounded}[lower=lowyellow,upper=upyellow,shadow=true]{Maximal-Gradient Policy}
+\begin{align*}
+g(s_{i, j}) = \left|\frac{\partial E_{rec}}{\partial s_{i,j}}\right| = (|AS - X| \cdot S^\intercal )_{i,j}
+\end{align*}
+\end{beamerboxesrounded}
+
+\begin{itemize}
+	\item This policy picks examples that produce \emph{large reconstruction error} and \emph{large activation}.
+	\item The reconstruction error part has some conceptual resemblance to the ``criticality'' in \citep{Zhang:1994uy} and ``integrated squared bias'' in \citep{Plutowski:1996vv} (although these deal with function approximations.)
+\end{itemize}
+
+\end{frame}
+
+
+
+%! Models of Saliency
+\begin{frame}{Saliency Policy}
+
+Another type of example selection heuristics that is more plausibly implemented by the biological systems is the bottom-up saliency.
+
+\begin{itemize}
+	\item There are a number of computational models for the bottom-up saliency in vision (such as \citet{Itti:2002tq} and \citet{Hou:2007tx}).
+
+	\item For this project, I use the saliency model proposed by \citet{Zhang2008}.
+\end{itemize}
+
+\citet{Zhang2008} defines the saliency at a location $z$ of a image as
+
+\begin{align*}
+	Saliency(z) \, \propto - \log P(F = f_z)
+\end{align*}
+
+Here, $f_z$ is the amplitude of visual feature at $z$.
+\end{frame}
+
+\begin{frame}{Saliency Policy}
+For this problem formulation,
+
+\begin{itemize}
+	\item The ``visual feature at location $z$'' corresponds to the activation $s_{i,j}$ ($i$-th pixel of the $j$-th example patch.)
+
+	\item Since sparse coding model corresponds to the MAP estimate for (independent) exponential prior, implicitly the model assumes
+
+\begin{align*}
+P(S) = \prod_{i,j} P(s_{i,j}), \quad P(s_{i,j}) \sim \exp (-\alpha s_{i,j})
+\end{align*}
+
+	\item This implies, for the activations resulting from sparse code, saliency is
+
+\begin{align*}
+Saliency(i,j) \,\propto \, s_{i,j} 
+\end{align*}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Saliency Policy}
+The goodness measure for this policy is then simply
+
+\begin{beamerboxesrounded}[lower=lowyellow,upper=upyellow,shadow=true]{Saliency Policy}
+\begin{align*}
+g(s_{i, j}) = s_{i,j}
+\end{align*}
+\end{beamerboxesrounded}
+
+\begin{itemize}
+	\item This policy simply picks examples that produce large activations.
+	\item Note that this term also appeared in the maximal-gradient goodness function; so highly salient examples are likely to be also chosen by the maximal-gradient policy as well.
+\end{itemize}
+
+\end{frame}
+
+\section{Simulations}
+
+\subsection{First Simulation}
+\begin{frame}{Learning from Synthetic Examples}
+
+In the first simulation, the effect of example selection is evaluated using examples synthesized from a small number of ``ground-truth'' dictionary elements.
+\begin{figure}
+  \centering
+  \includegraphics[width=1cm]{images/ag11.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/ag12.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/ag13.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/ag14.png} 
+  \caption{Ground-truth elements ($A$)}
+\end{figure}
+\vspace{-.3cm}
+
+Using $A$, generate $X$ as
+\vspace{-.3cm}
+\begin{align*}
+X = A S + \epsilon, \quad \epsilon \sim \mathcal{N}(0, I \sigma^2), \quad S \sim Exp(2 \sigma^2 / \lambda)
+\end{align*}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=1cm]{images/xg11.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/xg12.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/xg13.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/xg14.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/xg15.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/xg16.png} \hspace{1mm}
+  \caption{Some of the synthesized examples ($X$)}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Learning from Synthetic Examples}
+
+\begin{itemize}
+	\item Learn 4 dictionary elements for 400 epochs.
+	\item At each epoch, 40 examples are picked from 4000 examples.
+	\item Selection policies to compare:
+\begin{enumerate}
+	\item Uniform selection ({\tt unif})
+	\item Saliency using sum across all dictionary activations ({\tt sala})
+	\item Saliency using 10 top activations for each dictionary element ({\tt salc})
+	\item Maximal-gradient selection using sum across all activations ({\tt mxga})
+	\item Maximal-gradient selection using top activations for each dictionary element ({\tt mxgc}) 
+\end{enumerate}
+
+	\item Greedily match learned dictionary elements against the true elements using Euclidean distance measure
+\end{itemize}
+
+\end{frame}
+
+\newcommand{\sepage}[2]{%
+\underline{#2}
+\begin{columns}
+\begin{column}{.5\textwidth}
+\begin{figure}
+  \centering
+  \includegraphics[width=1cm]{images/r1d#1-1.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/r1d#1-2.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/r1d#1-3.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/r1d#1-4.png} \hspace{1mm}
+  \caption{Learned elements (${\hat A}$)}
+\end{figure}
+\end{column}
+\begin{column}{.5\textwidth}
+\begin{figure}
+  \centering
+  \includegraphics[width=1cm]{images/r1x#1-1.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/r1x#1-2.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/r1x#1-3.png} \hspace{1mm}
+  \includegraphics[width=1cm]{images/r1x#1-4.png} \hspace{1mm}
+  \caption{Top selected examples ($X$)}
+\end{figure}
+\end{column}
+\end{columns}
+
+\vspace{-.3cm}
+
+\setlength\figurewidth{0.35\textwidth}
+\setlength\figureheight{0.1\textwidth}
+
+\begin{columns}
+\begin{column}{.45\textwidth}
+\begin{figure}
+  \centering
+  \input{images/r1a#1.tikz}
+  \caption{Loss against $X_{all}$}
+\end{figure}
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{figure}
+  \centering
+  \input{images/r1l#1.tikz}
+  \caption{Distance from true elements}
+\end{figure}
+\end{column}
+\end{columns}
+
+}%
+
+\begin{frame}{Learning from Synthetic Examples}
+\only<1>{%
+\sepage{1}{Uniform Selection}
+}%
+
+\only<2>{%
+\sepage{2}{Saliency using all activations ({\tt sala})}
+}%
+
+\only<3>{%
+\sepage{3}{Saliency per dictionary element ({\tt salc})}
+}%
+
+\only<4>{%
+\sepage{4}{Maximal-gradient using all activations ({\tt mxga})}
+}%
+
+\only<5>{%
+\sepage{5}{Maximal-gradient per dictionary element ({\tt mxgc})}
+}%
+
+\only<6>{%
+\setlength\figurewidth{0.7\textwidth}
+\setlength\figureheight{0.3\textwidth}
+\begin{figure}
+  \centering
+  \caption{Total loss vs. epochs during learning}
+  \input{images/r1la.tikz}
+\end{figure}
+
+The loss across $X_{all}$ is lowest for {\tt unif} and {\tt sala} policies. However...
+}%
+
+\only<7>{%
+\setlength\figurewidth{0.7\textwidth}
+\setlength\figureheight{0.3\textwidth}
+\begin{figure}
+  \centering
+  \caption{Distance from $A$ vs. epochs during learning}
+  \input{images/r1lt.tikz}
+\end{figure}
+
+The distance from true dictionary elements are the lowest for {\tt mxgc} and {\tt salc}, followed by {\tt mxga}.
+}%
+
+\only<8>{%
+\underline{Results}:
+
+Example selection policies \underline{do} make a difference in \emph{how fast} and \emph{what} gets learned.
+
+\begin{enumerate}
+	\item {\tt salc} and {\tt mxgc} policies both learn dictionaries closer to the ground-truth at every epoch.
+
+	\item In contrast, {\tt sala} policy does not appear to be significantly different than the {\tt unif} policy.
+\end{enumerate}
+
+\begin{itemize}
+	\item Per-dictionary policies perform better than all-sum policies.
+
+	\item The benefit of {\tt mxg} policies are especially pronounced in the early stages of learning.
+\end{itemize}
+}%
+\end{frame}
+
+\subsection{Second Simulation}
+\begin{frame}{Learning from Natural Images}
+
+In the second simulation, the same dictionary learning algorithm is used to learn efficient codes for natural images.
+
+\begin{itemize}
+	\item The dataset: same as what has been used in \citet{Olshausen:1996p2797}.
+	\item With low dictionary sparsity $\gamma$ and reasonable activation sparsity $\lambda$, the resulting dictionary should be similar to what was shown in \citet{Olshausen:1996p2797}.
+\end{itemize}
+
+\begin{figure}
+  \centering
+\includegraphics[width=.3\textwidth]{images/olshausen2.png}
+\end{figure}
+
+\end{frame}
+
+
+\newcommand{\nepage}[2]{%
+\underline{#2}
+
+\begin{columns}
+\begin{column}{.45\textwidth}
+\begin{figure}
+  \centering
+  \includegraphics[width=.7\textwidth]{images/ag2-#1.png}
+  \caption{Learned (${\hat A}$) / Receptive Fields}
+\end{figure}
+\end{column}
+
+
+\begin{column}{.45\textwidth}
+\begin{figure}
+  \centering
+  \includegraphics[width=.7\textwidth]{images/xg2-#1.png}
+  \caption{Top examples}
+\end{figure}
+\end{column}
+\end{columns}
+
+\vspace{-.3cm}
+
+\setlength\figurewidth{0.5\textwidth}
+\setlength\figureheight{0.1\textwidth}
+\begin{figure}
+  \centering
+  \input{images/r2a#1.tikz}
+  \caption{Loss against $X_{all}$}
+\end{figure}
+}%
+
+\begin{frame}{Learning from Natural Images}
+\only<1>{%
+\nepage{1}{Uniform Selection}
+}%
+
+\only<2>{%
+\nepage{2}{Maximal-gradient per dictionary element ({\tt mxgc})}
+}%
+
+\only<3>{%
+\setlength\figurewidth{0.7\textwidth}
+\setlength\figureheight{0.3\textwidth}
+\begin{figure}
+  \centering
+  \caption{Total loss vs. epochs during learning}
+  \input{images/r2la.tikz}
+\end{figure}
+
+The loss across $X_{all}$ is lower for {\tt mxgc} than {\tt unif}, in contrast to the synthetic examples. 
+}%
+
+\only<4>{%
+\underline{Results}:
+
+\begin{itemize}
+	\item {\tt mxgc} policy appears to learn ``better'' dictionary elements:
+
+\begin{enumerate}
+	\item Reaches lower loss across $X_{all}$ quicker.
+	\item Learns dictionary elements that appear closer to what were discovered in \citep{Olshausen:1996p2797}. (Although still not as ``clean'').
+\end{enumerate}
+
+	\item However, some questions remain:
+
+\begin{enumerate}
+	\item Why does {\tt unif} not learn the similar dictionary elements to \citet{Olshausen:1996p2797}? Is it because of difference in the encoding algorithm or in the sparsity penalty?
+
+	\item Why is the loss lower for this simulation but not for the synthetic simulation?  Would it make a difference if the training patch is generated from a set of oriented Gabor filters?
+\end{enumerate}
+\end{itemize}
+}%
+\end{frame}
+
+\section{Conclusion}
+\begin{frame}{Conclusion}
+	In this work, I have examined the effect of active example selection on dictionary learning.  Using synthetic training examples and natural images, the results indicate that:
+
+\only<1>{%
+\begin{center}	
+\begin{beamerboxesrounded}[lower=lowyellow,upper=upyellow,shadow=true]{Question 1}
+Does attention \emph{help} or \emph{hurt} dictionary learning?
+
+$\Longrightarrow$ At least \emph{some} example selection strategies that makes use of saliency \emph{helps} in the dictionary learning.
+\end{beamerboxesrounded}
+\end{center}
+
+But how it ``helps'' appears to be different between the two types of simulations.
+
+}%
+
+\only<2>{%
+\begin{center}
+\begin{beamerboxesrounded}[lower=lowyellow,upper=upyellow,shadow=true]{Question 2}
+How does models of attention compare to \emph{optimal} learning strategies?
+
+$\Longrightarrow$ We do not yet know what the \emph{optimal} learning strategy is, but there appears to be heuristics (such as the maximal-gradient strategy) that can improve on saliency-based strategies.
+\end{beamerboxesrounded}
+\end{center}
+
+But what about other saliency models - how would they stack up?
+}%
+
+\end{frame}
+
+\begin{frame}[allowframebreaks]
+    \frametitle{References}
+	\bibliographystyle{plainnat}
+    \bibliography{../effect_of_saliency.bib}
+\end{frame}
+
+\end{document}
