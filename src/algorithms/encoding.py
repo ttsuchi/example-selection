@@ -9,7 +9,7 @@ from spams import lasso, somp
 
 from inc.common import mtr
 
-def equalize_activities(S, eq_factor = .5):
+def equalize_activities(S, eq_power = .5):
     """Equalizes the activity.
     When eq_factor is closer to 1, more equalization takes place
     """
@@ -26,7 +26,7 @@ def equalize_activities(S, eq_factor = .5):
         m = mean(S, axis=1)
 
     # Try to equalize variance of mean
-    return mtr(multiply(S, power((mean(m) / m) , eq_factor)))
+    return mtr(multiply(S, power((mean(m) / m) , eq_power)))
 
 
 class Base(object):

@@ -56,8 +56,8 @@ class Experiment(object):
             designs = [Design(self, selector, encoder, updater) for selector, encoder, updater in itertools.product(selectors, encoders, updaters)]
         self.designs = designs
 
-        # Initial dictionary set
-        A = Random(generator.p, generator.K, sort = False).A
+        # Initial dictionary set with some example sets
+        A = generator.generate()[:,:generator.K]
         
         self.As     = [mtr(A.copy()) for _ in designs]
         self.Xs     = []

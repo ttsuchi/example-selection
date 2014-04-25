@@ -47,9 +47,10 @@ class ExpDecayEta(object):
         return self.vmin + power(2, -float(itr)/self.half_life) * (self.vmax - self.vmin)
 
 class Base(object):
-    def __init__(self, encoder, num_iter = 100, **kwds):
+    def __init__(self, encoder, num_iter = 100, eq_power = .5, **kwds):
         self.encoder = encoder
         self.num_iter = num_iter
+        self.eq_power = eq_power
     
 
 class GD(Base):
@@ -70,7 +71,7 @@ class GD(Base):
         K = A.shape[1]
         for _ in range(self.num_iter):
             S = self.encoder.encode(X, A)
-            S = equalize_activities(S)
+            S = equalize_activities(S, self.eq_power)
             Xr= A*S
             Gr= (Xr-X) * S.T / S.shape[1]
             eta = self.eta(itr) if hasattr(self.eta, '__call__') else self.eta
