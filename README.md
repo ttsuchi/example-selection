@@ -30,6 +30,8 @@ spams [http://spams-devel.gforge.inria.fr/](http://spams-devel.gforge.inria.fr/)
 
 my fork of SaliencyMap [https://github.com/ttsuchi/saliency-map](https://github.com/ttsuchi/saliency-map)
 
+matplotlib2tikz [https://github.com/nschloe/matplotlib2tikz](https://github.com/nschloe/matplotlib2tikz)
+
 zmq
 
 ### Installation

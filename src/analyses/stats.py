@@ -1,5 +1,5 @@
 '''
-Represents a single step of dictionary learning iteration.
+Calculates various statistics during the learning steps.
 
 @author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
 '''
