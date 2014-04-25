@@ -11,7 +11,7 @@ import scipy.ndimage.filters
 
 import cv2 as cv
 
-class Base(object):
+class _Base(object):
     def __init__(self, n, **kwds):
         self.n = n
     
@@ -19,7 +19,7 @@ class Base(object):
     def name(self):
         return self.__class__.__name__
 
-class Unif(Base):
+class Unif(_Base):
     """Randomly select examples
     
     >>> from numpy.random import randn
@@ -59,31 +59,31 @@ def select_per_dictionary(G):
     _,idx=unique(Rf, return_index=True)
     return Rf[sort(idx)]
 
-class UsedD(Base):
+class UsedD(_Base):
     """Returns examples that use the dictionary element; similar to the algorithm used in K-SVD.
     """
     def select(self, X, A, S):
         return select_per_dictionary(S>0)[:self.n]
 
-class MagS(Base):
+class MagS(_Base):
     def select(self, X, A, S):
         return select_by_sum(abs(S))[:self.n]
 
-class MagD(Base):
+class MagD(_Base):
     def select(self, X, A, S):
         return select_per_dictionary(abs(S))[:self.n]
     
-class MXGS(Base):
+class MXGS(_Base):
     def select(self, X, A, S):
         G=abs(multiply(sum(A*S-X,axis=0),S)) # Auto-broadcasted to the shape of S
         return select_by_sum(G)[:self.n]
     
-class MXGD(Base):
+class MXGD(_Base):
     def select(self, X, A, S):
         G=abs(multiply(sum(A*S-X,axis=0),S)) # Auto-broadcasted to the shape of S
         return select_per_dictionary(G)[:self.n]
 
-class SalMap(Base):
+class SalMap(_Base):
     """Simplified implementation of the saliency map selection.
     Since each example has a single channel (grayscale) and is very small, will only use the "intensity" and "orientation" channels at a single scale.
     """
@@ -121,6 +121,8 @@ class SalMap(Base):
         
         G=.5 * (I + O)
         return select_by_sum(G)[:self.n]
+
+ALL_SELECTORS = [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap]
 
 if __name__ == '__main__':
     import doctest

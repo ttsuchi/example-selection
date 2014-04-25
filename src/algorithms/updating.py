@@ -12,6 +12,8 @@ from algorithms.encoding import equalize_activities, KSparse
 from analyses.stats import collect_stats
 from inc.common import mtr
 
+from spams import trainDL
+
 def update_with(design, X, Sstar, A, itr):
     """Return a new dictionary using the examples picked by the current selection policy.
     """
@@ -70,14 +72,13 @@ class ExpDecayEta(object):
     def __call__(self, itr):
         return self.vmin + power(2, -float(itr)/self.half_life) * (self.vmax - self.vmin)
 
-class Base(object):
-    def __init__(self, encoder, num_iter = 100, eq_power = .5, **kwds):
+class _Base(object):
+    def __init__(self, encoder, num_iter = 100, **kwds):
         self.encoder = encoder
         self.num_iter = num_iter
-        self.eq_power = eq_power
     
 
-class GD(Base):
+class GD(_Base):
     """Update dictionaries using a simple (stochastic) gradient descent method.
     
     >>> encoder = KSparse(); updater = GD(encoder, eta = .01)
@@ -87,8 +88,9 @@ class GD(Base):
     >>> assert_equal(updater.encoder, encoder)
     """
 
-    def __init__(self, encoder, eta = InverseEta(), **kwds):
+    def __init__(self, encoder, eta = InverseEta(), eq_power = .5,  **kwds):
         self.eta = eta
+        self.eq_power = eq_power
         super(GD, self).__init__(encoder, **kwds)
     
     def update(self, X, A, itr):
@@ -104,7 +106,35 @@ class GD(Base):
 
         return A
 
-class KSVD(Base):
+class SPAMS(_Base):
+    """Learns the dictionary using the SPAMS package.
+    """
+    def __init__(self, encoder, lambda1 = 0.15, **kwds):
+        super(SPAMS, self).__init__(encoder, **kwds)
+        self.param = {
+            'lambda1':  lambda1,
+            'posAlpha': True,
+            'clean':    False,
+            'iter':     self.num_iter,
+            'verbose':  False
+            }
+        self.model = None
+    
+    def update(self, X, A, itr):
+        param = {
+          'D': A,
+          'batchsize': 100
+        }
+        param.update(self.param)
+        
+        if self.model is None:
+            A, self.model = trainDL(X, return_model = True, **param)
+        else:
+            A, self.model = trainDL(X, return_model = True, model = self.model, **param)
+        
+        return mtr(normalize(A))
+
+class KSVD(_Base):
     """Update dictionaries using k-SVD method"""
     
     def __init__(self, encoder, **kwds):
