@@ -14,9 +14,10 @@ import pickle
 import os
 
 from data.dictionary import Random, to_image
-from algorithms.learning import update_with
+from algorithms.updating import update_with
 from inc.common import mtr
 from inc.execution import Serial
+from analyses.stats import plot_stats
 
 import datetime
 import time
@@ -57,14 +58,15 @@ class Experiment(object):
         self.designs = designs
 
         # Initial dictionary set with some example sets
-        A = generator.generate()[:,:generator.K]
+        X, _ = generator.generate()
+        A = X[:,:generator.K]
         
-        self.As     = [mtr(A.copy()) for _ in designs]
-        self.Xs     = []
-        self.losses = [pandas.DataFrame() for _ in designs]
-        self.stats  = pandas.DataFrame() 
-        self.itr    = 0
-        self.elapsed = 0.0
+        self.As       = [mtr(A.copy()) for _ in designs]
+        self.Xs       = []
+        self.stats   = [pandas.DataFrame() for _ in designs]
+        self.all_stats= pandas.DataFrame() 
+        self.itr      = 0
+        self.elapsed  = 0.0
 
     def run(self, num_iter, executor):
         """Executes the dictionary learning experiment.
@@ -74,17 +76,17 @@ class Experiment(object):
             start = time.time()
             
             # Generate mini-batches
-            X = self.generator.generate()
+            X, Sstar = self.generator.generate()
             assert all(isfinite(X))
 
             # Perform the update
-            results = executor(update_with, X, self.As, self.designs, self.itr)
+            results = executor(update_with, X, Sstar, self.As, self.designs, self.itr)
             
             self.As, current_losses, self.Xs = tuple(map(list, zip(*results)))
-            self.losses = map( lambda l_c: l_c[0].append(l_c[1], ignore_index = True), zip(self.losses, current_losses))
+            self.stats = map( lambda l_c: l_c[0].append(l_c[1], ignore_index = True), zip(self.stats, current_losses))
             
             self.elapsed = (time.time() - start)
-            self.stats = self.stats.append({'elapsed': self.elapsed}, ignore_index = True)
+            self.all_stats = self.all_stats.append({'elapsed': self.elapsed}, ignore_index = True)
             self.itr += 1
 
             yield self
@@ -105,12 +107,9 @@ class Experiment(object):
             return None
 
     def estimated_finish(self, num_iter):
-        mean_elapsed = self.stats['elapsed'].mean()
+        mean_elapsed = self.all_stats['elapsed'].mean()
         estimated_finish = (datetime.datetime.now() + datetime.timedelta(0, mean_elapsed*(num_iter - self.itr - 1)))
         return estimated_finish.strftime('%x %X')
-
-    def history(self, column):
-        return matrix(map(lambda loss: loss[column].as_matrix(), self.losses)).T
 
     def plot(self):
         design_names = map(lambda design: design.name(), self.designs)
@@ -144,36 +143,7 @@ class Experiment(object):
             plt.suptitle(selector_name)
             plt.draw()
 
-        N = 4
-        N+= 0 if Astar is None else 1
-        plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
-        plt.clf()
-        
-        plt.subplot(N,1,1)
-        plt.plot(self.history('loss_sampled'))
-        plt.gca().set_xticklabels([])
-        plt.title("loss for the sampled set")
-    
-        plt.subplot(N,1,2)
-        plt.plot(self.history('loss_all'))
-        plt.gca().set_xticklabels([])
-        plt.title("loss for all training set")
-    
-        plt.subplot(N,1,3)
-        plt.plot(self.history('std'))
-        if Astar is not None:
-            plt.gca().set_xticklabels([])
-        plt.title("mean difference in A")
-
-        if Astar is not None:
-            plt.subplot(N,1,4)
-            plt.plot(self.history('distance'))
-            plt.title("average distance from the true dictionary")
-        
-        plt.subplot(N,1,N)
-        plt.plot(zeros((2,len(design_names))))
-        plt.axis('off')
-        plt.legend(design_names, loc='center', ncol=4)
+        plot_stats(self.stats, design_names)
 
         plt.draw()
         

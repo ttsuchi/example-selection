@@ -1,0 +1,109 @@
+'''
+Represents a single step of dictionary learning iteration.
+
+@author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
+'''
+from numpy import *
+from numpy.random import randn
+from numpy.testing import assert_allclose, assert_array_equal
+import matplotlib.pyplot as plt
+
+from munkres import Munkres
+
+from inc.common import mtr
+from data.dictionary import normalize
+
+def collect_stats(X, A, oldA, Astar, S, Sstar, idx):
+    """Calculates various tatistics for the given X, A, S
+    
+    returns (stats, A), where:
+        stats: [reconstruction stats across all X, reconstruction stats across currently picked X]
+        A: re-ordered dictionary accoring to the best match, if the true dictionary (Astar) is provided
+        
+    >>> X = matrix([[1, 2, 0, sqrt(.5)], [0, 0, 1, 2+sqrt(.5)]]); A = normalize(matrix([[1,0,1],[0,1,1]])); S = matrix(([1, 2, 0, 0],[0, 0, 1, 2],[0, 0, 0, 1]))
+    
+    >>> stats, _ = collect_stats(X, A, S, array([0,1])); assert_allclose( stats['stats_all'], 0, atol=1e-10)
+    
+    >>> _, newA=collect_stats(X, A, S, array([0,1]), normalize(matrix([[1,.9,0],[1.1,0,1]])))
+    
+    >>> assert_allclose( newA, normalize(matrix([[1,1,0],[1,0,1]])) )
+    """
+    R = X - A*S
+    Rp = X[:,idx] - A*S[:,idx]
+    diff_A = A - oldA 
+    Sm = mean(S,axis=1)
+    stats = {
+        'loss_all':     mean(multiply(R, R)),
+        'loss_sampled': mean(multiply(Rp,Rp)),
+        'diff_A':       mean(multiply(diff_A, diff_A)),
+        'std_S':        std(Sm),
+        'mean_S':       mean(Sm),
+        'cv':           std(Sm) / mean(Sm)
+    }
+    
+    if Astar is None:
+        newA = mtr(A.copy())
+    else:
+        # Calculate distance
+        C = - Astar.T * A
+        assert all(isfinite(C))
+        idx = Munkres().compute(C.tolist())
+        newA = mtr(zeros(A.shape))
+        newS = zeros(S.shape)
+        for r, c in idx:
+            newA[:, r] = A[:, c]
+            newS[r, :] = S[c, :]
+
+        dA = Astar - newA
+        stats['dist_A'] = mean(multiply(dA, dA))
+        
+        dS = Sstar - newS
+        stats['dist_S'] = mean(multiply(dS, dS)) 
+
+    return stats, newA
+
+def _history(stats, column):
+    return matrix(map(lambda s: s[column].as_matrix(), stats)).T
+
+def plot_stats(stats, design_names):
+    N = 4
+    N+= 2 if 'dist_A' in stats[0].columns else 0
+
+    plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
+    plt.clf()
+    
+    plt.subplot(N,1,1)
+    plt.plot(_history(stats,'loss_sampled'))
+    plt.gca().set_xticklabels([])
+    plt.title("loss for the sampled set")
+
+    plt.subplot(N,1,2)
+    plt.plot(_history(stats,'loss_all'))
+    plt.gca().set_xticklabels([])
+    plt.title("loss for all training set")
+
+    plt.subplot(N,1,3)
+    plt.plot(_history(stats,'diff_A'))
+    if 'dist_A' in stats[0].columns:
+        plt.gca().set_xticklabels([])
+    plt.title("difference in A")
+
+    if 'dist_A' in stats[0].columns:
+        plt.subplot(N,1,4)
+        plt.plot(_history(stats,'dist_A'))
+        plt.gca().set_xticklabels([])
+        plt.title("average distance from the true dictionary")
+
+        plt.subplot(N,1,5)
+        plt.plot(_history(stats,'dist_S'))
+        plt.gca().set_xticklabels([])
+        plt.title("average distance from the true activation")
+
+    plt.subplot(N,1,N)
+    plt.plot(zeros((2,len(design_names))))
+    plt.axis('off')
+    plt.legend(design_names, loc='center', ncol=4)    
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

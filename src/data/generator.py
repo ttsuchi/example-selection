@@ -68,7 +68,7 @@ class FromDictionary(Base):
     def generate(self):
         S = self.generate_S()
         X = self.dictionary.A*S
-        return mtr(X + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr))
+        return mtr(X + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr)), S
 
 class FromDictionaryL0(FromDictionary):
     """Generate examples from a set of "ground-truth" dictionary elements, using L0 sparsity
@@ -136,7 +136,7 @@ class FromImageDataset(Base):
             r=BUFF+randint(image_size-self.p-2*BUFF)
             c=BUFF+randint(image_size-self.p-2*BUFF)
             X[:,n]=this_image[r:(r+self.p), c:(c+self.p)].reshape([self.P, 1])
-        return X
+        return X, None
 
 
 if __name__ == '__main__':

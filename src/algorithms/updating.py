@@ -9,7 +9,31 @@ from numpy.testing import assert_allclose, assert_equal
 from data.dictionary import normalize
 
 from algorithms.encoding import equalize_activities, KSparse
+from analyses.stats import collect_stats
 from inc.common import mtr
+
+def update_with(design, X, Sstar, A, itr):
+    """Return a new dictionary using the examples picked by the current selection policy.
+    """
+    all_stats = {}
+    
+    # Encode all training examples
+    S = design.encoder.encode(X, A)
+    
+    # Pick examples to learn from
+    idx = design.selector.select(X, A, S)
+    
+    # Update dictionary using these examples
+    Xp = mtr(X[:, idx])
+    newA = design.updater.update(Xp, A, itr)
+
+    # Collect the stats (and A will be re-ordered)
+    stats, A = collect_stats(X, newA, A, design.experiment.Astar, S, Sstar, idx)
+    all_stats.update(stats)
+
+    # Some top chosen examples
+    Xp = X[:, idx[:min(len(idx), A.shape[1])]]
+    return A, all_stats, Xp
 
 class InverseEta(object):
     """A function object that produces learning rates that decay with O(t^-1).
