@@ -45,6 +45,31 @@ def plot_dist_A(multiple_stats, designs):
     plt.xlabel("Iterations")
     plt.ylabel("Distance from True Dictionaries")
 
+def plot_dist_A_bar(multiple_stats, designs):
+    design_names = [design.name() for design in designs if design.updater.__class__ == GD]
+    column = 'dist_A'
+    
+    all_history = array([_history(stats, column, designs) for stats in multiple_stats])
+
+    plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
+    plt.clf()
+
+    data = all_history[:,-1,:].squeeze()
+    x = arange(data.shape[1])
+    y = mean(data, axis=0)
+    yerr = std(data, axis = 0)
+    ind = arange(x.shape[0])
+    
+    idx = argsort(-y)
+    
+    width = .8
+    plt.bar(ind, y[idx], width, color = 'b', yerr=yerr[idx])
+    plt.gca().set_xticks(ind+width/2)
+    sorted_design_names = [l for l,_ in sorted(zip(design_names, -y), key=lambda x: x[1])]
+    plt.gca().set_xticklabels(sorted_design_names)
+    
+    plt.ylabel("Distance from True Dictionaries")
+
 def plot_snr(multiple_stats, designs):
     design_names = [design.name() for design in designs if design.updater.__class__ == GD]
     column = 'mean_Xsnr_p'
