@@ -14,7 +14,7 @@ from inc.design import Experiment
 def create(name):
     K = 25
     true_dictionary = Letters(p = 8, K = K)
-    selectors = [cls(K * 10) for cls in [Unif, MXGD]]
+    selectors = [cls(K * 10) for cls in ALL_SELECTORS]
     encoder = LASSO(.15)
     updaters = [GD(encoder, num_iter = 500), SPAMS(encoder, num_iter = 10)]
     return Experiment(name, FromDictionaryL0(true_dictionary, nnz = 3, snr = 6),
