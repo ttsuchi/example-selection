@@ -76,7 +76,7 @@ def _history(stats, column):
 
 def plot_stats(stats, design_names):
     N = 4
-    N+= 2 if 'dist_A' in stats[0].columns else 0
+    N+= 3 if 'dist_A' in stats[0].columns else 0
     N+= 1 if 'mean_Xsnr' in stats[0].columns else 0
 
     plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
@@ -103,11 +103,19 @@ def plot_stats(stats, design_names):
         plt.title("average distance from the true dictionary")
 
         plt.subplot(N,1,5)
+        data = _history(stats,'dist_A')[-1,:].T
+        ind = arange(data.shape[0])
+        width = .8
+        plt.bar(ind, data, width, color = 'b')
+        plt.gca().set_xticks(ind+width/2)
+        plt.gca().set_xticklabels(design_names)
+        
+        plt.subplot(N,1,6)
         plt.plot(_history(stats,'dist_S'))
         plt.title("average distance from the true activation")
 
     if 'mean_Xsnr' in stats[0].columns:
-        plt.subplot(N,1,6)
+        plt.subplot(N,1,7)
         plt.plot(_history(stats,'mean_Xsnr_p'))
         plt.title("SNR of selected examples")
         

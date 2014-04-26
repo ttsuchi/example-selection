@@ -7,7 +7,9 @@ from numpy import *
 from numpy.random import permutation
 from numpy.testing import assert_allclose
 
-import scipy.ndimage.filters 
+import scipy.ndimage.filters
+
+import Pycluster
 
 import cv2 as cv
 
@@ -124,7 +126,54 @@ class SalMap(_Base):
         G=.5 * (I + O)
         return select_by_sum(G)[:self.n]
 
-ALL_SELECTORS = [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap]
+class SUNS(_Base):
+    """Simplified implementation of the saliency using natural statistics.
+    Will assume exponential distribution on non-zero components. That means the saliency is simply s / mean(s) for each dimension.
+    """
+    
+    def select(self, X, A, S):
+        G = abs(S) / mean(abs(S), axis=1)
+        return select_by_sum(G)[:self.n]
+
+class SUND(_Base):    
+    def select(self, X, A, S):
+        G = abs(S) / mean(abs(S), axis=1)
+        return select_per_dictionary(G)[:self.n]
+
+class KMX(_Base):
+    """Choose examples based on k-means cluster centroid distances of X
+    """
+    def select(self, X, A, S):
+        _, K = A.shape
+        labels, _, _ = Pycluster.kcluster(X.T, K)
+        centers, _   = Pycluster.clustercentroids(X.T, clusterid=labels)
+        centers = centers.T
+        G = zeros(S.shape)
+        
+        for k in range(K):
+            D = expand_dims(centers[:, k], axis=1)
+            G[k, :] = 1/sqrt(sum(multiply(D, D), axis=0) + spacing(1))
+
+        return select_per_dictionary(G)[:self.n]
+
+class KMS(_Base):
+    """Choose examples based on k-means cluster centroid distances of S
+    """
+    def select(self, X, A, S):
+        _, K = A.shape
+        labels, _, _ = Pycluster.kcluster(S.T, K)
+        centers, _   = Pycluster.clustercentroids(S.T, clusterid=labels)
+        centers = centers.T
+        G = zeros(S.shape)
+        
+        for k in range(K):
+            D = S - expand_dims(centers[:, k], axis=1)
+            G[k, :] = 1/sqrt(sum(multiply(D, D), axis=0) + spacing(1))
+
+        return select_per_dictionary(G)[:self.n]
+
+
+ALL_SELECTORS = [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS]
 
 if __name__ == '__main__':
     import doctest
