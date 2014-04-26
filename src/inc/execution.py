@@ -29,8 +29,8 @@ class TemporaryDirectory(object):
 class Serial(object):
     """Executes the updates serially.
     """
-    def __call__(self, update_fn, X, Sstar, As, designs, itr):
-        return [update_fn(design, X, Sstar, A, itr) for A, design in zip(As, designs)]
+    def __call__(self, update_fn, X, Sstar, Xsnr, As, designs, itr):
+        return [update_fn(design, X, Sstar, Xsnr, A, itr) for A, design in zip(As, designs)]
 
 class IParallel(object):
     """Executes the updates in parallel using IPython.parallel.    
@@ -39,30 +39,34 @@ class IParallel(object):
         self.client = Client()
         self.dview = self.client[:]
         
-    def __call__(self, update_fn, X, Sstar, As, designs, itr):
+    def __call__(self, update_fn, X, Sstar, Xsnr, As, designs, itr):
         with TemporaryDirectory() as temp_dir:
-            X_filename = path.join(temp_dir, 'X.dat')
-            Xm = memmap(X_filename, dtype = X.dtype, mode='w+', shape = X.shape)
-            Xm[:] = X[:]
-            
-            if Sstar is not None:
-                Sstar_filename=path.join(temp_dir,'Sstar.dat')
-                Sstarm = memmap(Sstar_filename, dtype = Sstar.dtype, mode='w+', shape = Sstar.shape)
-                Sstarm[:] = Sstar[:]
-            else:
-                Sstarm = None
-            
-            return self.dview.map_sync(UpdateFunction(update_fn, mtr(Xm), mtr(Sstarm), itr) , zip(As, designs))
+            Xm = self._memmap(temp_dir, X, 'X')
+            Sstarm = self._memmap(temp_dir, Sstar, 'Sstar')
+            Xsnrm = self._memmap(temp_dir, Xsnr, 'Xsnr')
+    
+            print Xsnrm.shape
+            return self.dview.map_sync(UpdateFunction(update_fn, Xm, Sstarm, Xsnrm, itr) , zip(As, designs))
+
+    def _memmap(self, temp_dir, data, name):
+        if data is not None:
+            filename=path.join(temp_dir, name + '.dat')
+            M = memmap(filename, dtype = data.dtype, mode='w+', shape = data.shape)
+            M[:] = data[:]
+            return mtr(M)
+        else:
+            return None
 
 class UpdateFunction(object):
     """A picklable function object for the update function.
     """
-    def __init__(self, update_fn, X, Sstar, itr):
+    def __init__(self, update_fn, X, Sstar, Xsnr, itr):
         self.update_fn = update_fn
         self.X = X
         self.Sstar = Sstar
+        self.Xsnr = Xsnr
         self.itr = itr
     
     def __call__(self, A_design):
         A, design = A_design
-        return self.update_fn(design, self.X, self.Sstar, A, self.itr)
+        return self.update_fn(design, self.X, self.Sstar, self.Xsnr, A, self.itr)

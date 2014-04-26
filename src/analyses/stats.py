@@ -13,7 +13,7 @@ from munkres import Munkres
 from inc.common import mtr
 from data.dictionary import normalize
 
-def collect_stats(X, A, oldA, Astar, S, Sstar, idx):
+def collect_stats(X, A, oldA, Astar, S, Sstar, Xsnr, idx):
     """Calculates various tatistics for the given X, A, S
     
     returns (stats, A), where:
@@ -40,6 +40,15 @@ def collect_stats(X, A, oldA, Astar, S, Sstar, idx):
         'mean_S':       mean(Sm),
         'cv':           std(Sm) / mean(Sm)
     }
+    
+    if Xsnr is not None:
+        Xsnr = asarray(Xsnr).squeeze()
+        stats.update({
+            'mean_Xsnr':    mean(Xsnr),
+            'std_Xsnr':     std(Xsnr),
+            'mean_Xsnr_p':  mean(Xsnr[idx]),
+            'std_Xsnr_p':   std(Xsnr[idx])
+            })
     
     if Astar is None:
         newA = mtr(A.copy())
@@ -68,6 +77,7 @@ def _history(stats, column):
 def plot_stats(stats, design_names):
     N = 4
     N+= 2 if 'dist_A' in stats[0].columns else 0
+    N+= 1 if 'mean_Xsnr' in stats[0].columns else 0
 
     plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
     plt.clf()
@@ -84,8 +94,6 @@ def plot_stats(stats, design_names):
 
     plt.subplot(N,1,3)
     plt.plot(_history(stats,'diff_A'))
-    if 'dist_A' in stats[0].columns:
-        plt.gca().set_xticklabels([])
     plt.title("difference in A")
 
     if 'dist_A' in stats[0].columns:
@@ -96,8 +104,13 @@ def plot_stats(stats, design_names):
 
         plt.subplot(N,1,5)
         plt.plot(_history(stats,'dist_S'))
-        plt.gca().set_xticklabels([])
         plt.title("average distance from the true activation")
+
+    if 'mean_Xsnr' in stats[0].columns:
+        plt.subplot(N,1,6)
+        plt.plot(_history(stats,'mean_Xsnr_p'))
+        plt.title("SNR of selected examples")
+        
 
     plt.subplot(N,1,N)
     plt.plot(zeros((2,len(design_names))))

@@ -24,10 +24,15 @@ def plot_dist_A(multiple_stats, designs):
 
     x = arange(all_history.shape[1])
     y = mean(all_history, axis = 0)
-    # yerr = std(all_history, axis = 0)
+    yerr = std(all_history, axis = 0)
     # plt.errorbar(x, y, yerr = yerr)
-    plt.plot(y)
-    plt.gca().set_xticklabels([])
+    
+    for yind in range(y.shape[1]):
+        #plt.fill_between(xcb, lcb, ucb, alpha=0.3, facecolor='gray')
+        ym = y[:, yind]
+        base_line, = plt.plot(ym)
+        plt.fill_between(x, ym - yerr[:, yind], ym + yerr[:, yind], facecolor=base_line.get_color(), alpha = 0.05)
+    plt.gca().set_xscale('log')
 
     # Shink current axis by 20%
     box = plt.gca().get_position()

@@ -14,7 +14,7 @@ from inc.common import mtr
 
 from spams import trainDL
 
-def update_with(design, X, Sstar, A, itr):
+def update_with(design, X, Sstar, Xsnr, A, itr):
     """Return a new dictionary using the examples picked by the current selection policy.
     """
     all_stats = {}
@@ -30,7 +30,7 @@ def update_with(design, X, Sstar, A, itr):
     newA = design.updater.update(Xp, A, itr)
 
     # Collect the stats (and A will be re-ordered)
-    stats, A = collect_stats(X, newA, A, design.experiment.Astar, S, Sstar, idx)
+    stats, A = collect_stats(X, newA, A, design.experiment.Astar, S, Sstar, Xsnr, idx)
     all_stats.update(stats)
 
     # Some top chosen examples

@@ -17,6 +17,6 @@ def create(name):
     selectors = [cls(K * 10) for cls in ALL_SELECTORS]
     encoder = LASSO(.15)
     updaters = [GD(encoder, num_iter = 10), SPAMS(encoder, num_iter = 10)]
-    return Experiment(name, FromDictionaryL1(true_dictionary, lambdaS = 1, snr = .05),
+    return Experiment(name, FromDictionaryL1(true_dictionary, lambdaS = 1, snr = 6),
                             selectors = selectors, encoders = [encoder], updaters = updaters)
 

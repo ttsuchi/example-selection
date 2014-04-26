@@ -58,7 +58,7 @@ class Experiment(object):
         self.designs = designs
 
         # Initial dictionary set with some example sets
-        X, _ = generator.generate()
+        X, _, _ = generator.generate()
         A = X[:,:generator.K]
         
         self.As       = [mtr(A.copy()) for _ in designs]
@@ -76,11 +76,11 @@ class Experiment(object):
             start = time.time()
             
             # Generate mini-batches
-            X, Sstar = self.generator.generate()
+            X, Sstar, Xsnr = self.generator.generate()
             assert all(isfinite(X))
 
             # Perform the update
-            results = executor(update_with, X, Sstar, self.As, self.designs, self.itr)
+            results = executor(update_with, X, Sstar, Xsnr, self.As, self.designs, self.itr)
             
             self.As, current_losses, self.Xs = tuple(map(list, zip(*results)))
             self.stats = map( lambda l_c: l_c[0].append(l_c[1], ignore_index = True), zip(self.stats, current_losses))

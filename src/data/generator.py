@@ -34,15 +34,6 @@ def whiten(X):
     d[d<0] = 0 # In case d returns very small negative eigenvalues
     return (V / sqrt(d+spacing(1))) * V.T * X
 
-def snr_to_sigma(snr):
-    """Convert noise SNR value to STD for noise generation, assuming the signal has unit variance
-        (which the whiten() method does.)
-        
-    >>> assert_allclose(var(snr_to_sigma(.3)*randn(10000,1)), 1e-3, rtol=1e-1) # .3 dB
-    
-    """
-    return 10**(-snr*5)
-
 class Base(object):
     def __init__(self, p = 12, K = 256, N = 10000, **kwds):
         self.p = p # patch dimensions
@@ -62,13 +53,22 @@ class FromDictionary(Base):
     """
     def __init__(self, dictionary, snr = 6, **kwds):
         self.dictionary = dictionary
-        self.snr        = snr        # Signal-to-noise ratio in dB
+        self.snr        = snr
+        # Convert the signal-to-noise ratio in dB into sigma
+        self.sigma      = 10.0**(-snr / 20.0)
         super(FromDictionary, self).__init__(p = dictionary.p, K = dictionary.K, **kwds)
     
     def generate(self):
         S = self.generate_S()
         X = self.dictionary.A*S
-        return mtr(X + randn(X.shape[0], X.shape[1])*snr_to_sigma(self.snr)), S
+        A_signal = sqrt(mean(multiply(X, X),axis=0))
+        noise = randn(X.shape[0], X.shape[1])*mean(A_signal)*self.sigma
+        
+        # Calculate the SNR for each example
+        A_noise  = sqrt(mean(multiply(noise, noise), axis=0))
+        Xsnr = 20 * (log10(A_signal / A_noise))
+        
+        return mtr(X + noise), S, Xsnr
 
 class FromDictionaryL0(FromDictionary):
     """Generate examples from a set of "ground-truth" dictionary elements, using L0 sparsity
