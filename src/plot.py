@@ -28,7 +28,6 @@ def main(figname, name, subname):
 
     plot_fn(multiple_stats, designs)
     plt.draw()
-    plt.waitforbuttonpress()
 
     tikz_filename = FIGURES_DIR + name + '-' + figname + '.tikz'
     save(tikz_filename,

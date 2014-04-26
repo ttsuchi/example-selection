@@ -61,9 +61,10 @@ def select_per_dictionary(G):
 
 class UsedD(_Base):
     """Returns examples that use the dictionary element; similar to the algorithm used in K-SVD.
+    For L1 activations, not all activations will be exactly zero. So will consider the dictionary to have been "used" if it's greater than the median.
     """
     def select(self, X, A, S):
-        return select_per_dictionary(S>0)[:self.n]
+        return select_per_dictionary((S>median(S, axis=0))*1.0)[:self.n]
 
 class MagS(_Base):
     def select(self, X, A, S):

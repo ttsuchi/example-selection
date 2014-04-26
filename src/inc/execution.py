@@ -44,8 +44,6 @@ class IParallel(object):
             Xm = self._memmap(temp_dir, X, 'X')
             Sstarm = self._memmap(temp_dir, Sstar, 'Sstar')
             Xsnrm = self._memmap(temp_dir, Xsnr, 'Xsnr')
-    
-            print Xsnrm.shape
             return self.dview.map_sync(UpdateFunction(update_fn, Xm, Sstarm, Xsnrm, itr) , zip(As, designs))
 
     def _memmap(self, temp_dir, data, name):
