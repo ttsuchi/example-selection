@@ -7,14 +7,24 @@ from numpy import *
 from numpy.random import randn
 from numpy.testing import assert_allclose, assert_array_equal
 import matplotlib.pyplot as plt
+import string
 
 from algorithms.updating import GD, SPAMS
 
+def _chosen(design):
+    return design.updater.__class__ == GD
+
+def _names(designs):
+    return [string.split(design.name(),'-')[0] for design in designs if _chosen(design)]
+
+def _sorted_design_names(design_names, by):
+    return [l for l,_ in sorted(zip(design_names, by), key=lambda x: x[1])]
+
 def _history(stats, column, designs):
-    return matrix([stat[column].as_matrix() for stat, design in zip(stats, designs) if design.updater.__class__ == GD]).T
+    return matrix([stat[column].as_matrix() for stat, design in zip(stats, designs) if _chosen(design)]).T
 
 def plot_dist_A(multiple_stats, designs):
-    design_names = [design.name() for design in designs if design.updater.__class__ == GD]
+    design_names = _names(designs)
     column = 'dist_A'
     
     all_history = array([_history(stats, column, designs) for stats in multiple_stats])
@@ -25,7 +35,13 @@ def plot_dist_A(multiple_stats, designs):
     x = arange(all_history.shape[1])
     y = mean(all_history, axis = 0)
     yerr = std(all_history, axis = 0)
-    # plt.errorbar(x, y, yerr = yerr)
+    
+    # Sort by the last performance
+    sort_data = -mean(all_history[:,-1,:].squeeze(), axis=0)
+    idx = argsort(sort_data)
+    y = y[:, idx]
+    yerr = yerr[:, idx]
+    design_names = _sorted_design_names(design_names, sort_data)
     
     for yind in range(y.shape[1]):
         #plt.fill_between(xcb, lcb, ucb, alpha=0.3, facecolor='gray')
@@ -40,13 +56,13 @@ def plot_dist_A(multiple_stats, designs):
     
     # Put a legend to the right of the current axis
     # plt.gca().legend(design_names, loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.gca().legend(design_names, loc='upper right')
+    plt.gca().legend(design_names, loc='lower left')
     
     plt.xlabel("Iterations")
     plt.ylabel("Distance from True Dictionaries")
 
 def plot_dist_A_bar(multiple_stats, designs):
-    design_names = [design.name() for design in designs if design.updater.__class__ == GD]
+    design_names = _names(designs)
     column = 'dist_A'
     
     all_history = array([_history(stats, column, designs) for stats in multiple_stats])
@@ -65,18 +81,17 @@ def plot_dist_A_bar(multiple_stats, designs):
     width = .8
     plt.bar(ind, y[idx], width, color = 'b', yerr=yerr[idx])
     plt.gca().set_xticks(ind+width/2)
-    sorted_design_names = [l for l,_ in sorted(zip(design_names, -y), key=lambda x: x[1])]
-    plt.gca().set_xticklabels(sorted_design_names)
+    plt.gca().set_xticklabels(_sorted_design_names(design_names, -y))
     
     plt.ylabel("Distance from True Dictionaries")
 
 def plot_snr(multiple_stats, designs):
-    design_names = [design.name() for design in designs if design.updater.__class__ == GD]
+    design_names = _names(designs)
     column = 'mean_Xsnr_p'
 
     all_history = array([_history(stats, column, designs) for stats in multiple_stats]).squeeze()
     start = int(ceil(.6 * all_history.shape[0]))
-    data = all_history[start:, :]
+    data = all_history[start:, :].squeeze()
     
     ind = arange(data.shape[1])
     width = .8

@@ -8,6 +8,7 @@ from importlib import import_module
 from inc.design import Experiment
 
 import re
+import os, sys
 from os.path import splitext, basename
 import matplotlib.pyplot as plt
 from matplotlib2tikz import save
@@ -42,7 +43,6 @@ def main(figname, name, subname):
     plt.waitforbuttonpress()
     
 if __name__ == '__main__':
-    import os, sys
     os.chdir(os.path.dirname(sys.argv[0]))
 
     import argparse
