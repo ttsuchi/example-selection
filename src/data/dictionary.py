@@ -11,6 +11,7 @@ from numpy.random import rand
 from inc.common import mtr
 
 import matplotlib.cm as cmx
+from scipy.io import loadmat
 
 def normalize(A):
     """Normalizes A to have unit norm.
@@ -44,7 +45,7 @@ def to_image(A, border = 1, colorize = True):
     image = ones(( (border+sz[0])*SZ[0]-border, (border+sz[1])*SZ[1]-border )) * .5
     
     # scale images but with 0.5 as the center
-    scaling = max(abs(nanmin(A)), nanmax(A)) * 2
+    scaling = nanmax(abs(A)) * 2
     A /= scaling # A in [-.5,.5]
     A += .5      # A in [0, 1]
     
@@ -180,22 +181,45 @@ class RandomGabors(GeneratedDictionary):
         yt =-(xv-cx) * sin(theta) + (yv-cy) * cos(theta)
         
         return exp(-.5 * ((xt*xt)/sgx+(yt*yt)/sgy)) * cos(2 * pi/lm * xt)
-    
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
-    
-    import sys
-    if len(sys.argv) > 1:
+
+class Letters(GeneratedDictionary):
+    """Generate dictionaries composed of alphabet letters
+    """
+    def __init__(self, **kwds):
+        self.L = None
+        super(Letters, self).__init__(sort = False, **kwds)
+
+    def generate_A(self, P, K):
+        A=zeros((P, K))
+        
+        if self.L is None:
+            self.L = loadmat('../contrib/letters/alphabet-%d.mat' % sqrt(P))['L']
+
+        N = self.L.shape[1]
+        for ki in range(K):
+            A[:, ki] = self.L[:, ki % N]
+
+        return A
+
+def main(plot = False):
+    if plot:
+        import sys
         # Plot some dictionaries
         import matplotlib.pyplot as plt
-        for cls in [Random, RandomGabors]:            
-            A = cls(p=12, K=256).A
+        for cls in [Random, RandomGabors, Letters]:            
+            A = cls(p=8, K=25).A
             plt.figure()
             plt.imshow(to_image(A), aspect = 'equal', interpolation = 'nearest', vmin = 0, vmax = 1)
             plt.axis('off')
             plt.title(cls.__name__)
+            plt.show()
+            plt.waitforbuttonpress()
+    else:
+        import doctest
+        doctest.testmod()
 
-        plt.show()
+if __name__ == '__main__':
+    main(len(sys.argv) > 1)
+
         
             
