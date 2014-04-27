@@ -104,7 +104,7 @@ class Experiment(object):
             with open(file_name, 'r') as fin:
                 return pickle.load(fin)
         else:
-            return None
+            raise Exception("Could not load " + file_name)
 
     def estimated_finish(self, num_iter):
         mean_elapsed = self.all_stats['elapsed'].mean()

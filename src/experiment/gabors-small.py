@@ -14,7 +14,7 @@ from inc.design import Experiment
 def create(name):
     K = 25
     true_dictionary = RandomGabors(p = 12, K = K)
-    selectors = [cls(K * 10) for cls in [Unif, MagD, KMS, KMX]]
+    selectors = [cls(K * 10) for cls in [Unif, SUNS, SUND, MagS, MagD, KMS, KMX]]
     encoder = LASSO(.15)
     updater = GD(encoder, num_iter = 10)
     return Experiment(name, FromDictionaryL0(true_dictionary, nnz = 2, snr = 6),

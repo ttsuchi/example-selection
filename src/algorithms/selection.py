@@ -21,6 +21,33 @@ class _Base(object):
     def name(self):
         return self.__class__.__name__
 
+    def _select_by_sum(self, G):
+        """Return indices from a goodness matrix G, ordered descending for the sum across each example.
+    
+        >>> G=matrix([[.5,.4,1,0], [0,.9,.8,.7]])
+    
+        Since the sum is [.5, 1.3, 1.8, .7], 
+        
+        >>> print _Base(4)._select_by_sum(G)
+        [2 1 3 0]
+        """
+        return squeeze(asarray(argsort(-sum(G, axis=0))))[:self.n]
+
+    def _select_per_dictionary(self, G):
+        """Return indices from a goodness matrix G, ordered descending for each dictionary element.
+        
+        >>> G=matrix([[.5,.4,1,0], [0,.9,.8,.7]])
+        
+        Note that the ranking for each dictionary element is [2,0,1,3],[1,2,3,0]; so
+        
+        >>> print _Base(4)._select_per_dictionary(G)
+        [2 1 0 3]
+        """
+        R = argsort(-G)  # Sort in descending order, with axis=1
+        Rf = squeeze(asarray(R.T.flatten()))  # Get indices column-wise
+        _, idx = unique(Rf, return_index=True)
+        return (Rf[sort(idx)])[:self.n]
+
 class Unif(_Base):
     """Randomly select examples
     
@@ -31,61 +58,34 @@ class Unif(_Base):
 
     """
     def select(self, X, A, S):
-        N=X.shape[1]
+        N = X.shape[1]
         return permutation(N)[:self.n]
-
-def select_by_sum(G):
-    """Return indices from a goodness matrix G, ordered descending for the sum across each example.
-
-    >>> G=matrix([[.5,.4,1,0], [0,.9,.8,.7]])
-
-    Since the sum is [.5, 1.3, 1.8, .7], 
-    
-    >>> print select_by_sum(G)
-    [2 1 3 0]
-    """
-    return squeeze(asarray(argsort(-sum(G,axis=0))))
-
-def select_per_dictionary(G):
-    """Return indices from a goodness matrix G, ordered descending for each dictionary element.
-    
-    >>> G=matrix([[.5,.4,1,0], [0,.9,.8,.7]])
-    
-    Note that the ranking for each dictionary element is [2,0,1,3],[1,2,3,0]; so
-    
-    >>> print select_per_dictionary(G)
-    [2 1 0 3]
-    """
-    R=argsort(-G) # Sort in descending order, with axis=1
-    Rf=squeeze(asarray(R.T.flatten())) # Get indices column-wise
-    _,idx=unique(Rf, return_index=True)
-    return Rf[sort(idx)]
 
 class UsedD(_Base):
     """Returns examples that use the dictionary element; similar to the algorithm used in K-SVD.
     For L1 activations, not all activations will be exactly zero. So will consider the dictionary to have been "used" if it's greater than the median.
     """
     def select(self, X, A, S):
-        G = (S>median(S, axis=0))*1.0
-        return select_per_dictionary(G)[:self.n]
+        G = (S > median(S, axis=0)) * 1.0
+        return self._select_per_dictionary(G)
 
 class MagS(_Base):
     def select(self, X, A, S):
-        return select_by_sum(abs(S))[:self.n]
+        return self._select_by_sum(abs(S))
 
 class MagD(_Base):
     def select(self, X, A, S):
-        return select_per_dictionary(abs(S))[:self.n]
-    
+        return self._select_per_dictionary(abs(S))
+
 class MXGS(_Base):
     def select(self, X, A, S):
-        G=abs(multiply(sum(A*S-X,axis=0),S)) # Auto-broadcasted to the shape of S
-        return select_by_sum(G)[:self.n]
+        G = abs(multiply(sum(A * S - X, axis=0), S))  # Auto-broadcasted to the shape of S
+        return self._select_by_sum(G)
     
 class MXGD(_Base):
     def select(self, X, A, S):
-        G=abs(multiply(sum(A*S-X,axis=0),S)) # Auto-broadcasted to the shape of S
-        return select_per_dictionary(G)[:self.n]
+        G = abs(multiply(sum(A * S - X, axis=0), S))  # Auto-broadcasted to the shape of S
+        return self._select_per_dictionary(G)
 
 class SalMap(_Base):
     """Simplified implementation of the saliency map selection.
@@ -113,67 +113,67 @@ class SalMap(_Base):
         if self.kernels is None:
             self.kernels = [cv.getGaborKernel((p, p), p / 2, pi * angle / 4, p, 1) for angle in [0, 45, 90, 135]]
         
-        Xs = zeros((p, p*N))
+        Xs = zeros((p, p * N))
         for n in range(N):
-            Xs[:, p*n:(p*n+p)] = X[:,n].reshape((p,p))
+            Xs[:, p * n:(p * n + p)] = X[:, n].reshape((p, p))
 
         Os = self._normalize(reduce(add, [self._normalize(cv.filter2D(Xs, cv.CV_32F, kernel)) for kernel in self.kernels]))
    
         O = zeros((P, N))
         for n in range(N):
-            O[:, n] = Os[:,p*n:(p*n+p)].reshape((P))
+            O[:, n] = Os[:, p * n:(p * n + p)].reshape((P))
         
-        G=.5 * (I + O)
-        return select_by_sum(G)[:self.n]
+        G = .5 * (I + O)
+        return self._select_by_sum(G)
 
-class SUNS(_Base):
+class _SUN(_Base):
     """Simplified implementation of the saliency using natural statistics.
     Will assume exponential distribution on non-zero components. That means the saliency is simply s / mean(s) for each dimension.
     """
-    
-    def select(self, X, A, S):
-        G = abs(S) / mean(abs(S), axis=1)
-        return select_by_sum(G)[:self.n]
+    def _G(self, X, A, S):
+        G = abs(S.copy())
+        G[G < mean(G) * .01] = nan
+        m = nanmean(G, axis=1) + spacing(1)
+        m[isnan(m)] = 1.0
+        return S / m
 
-class SUND(_Base):    
+class SUNS(_SUN):
     def select(self, X, A, S):
-        G = abs(S) / mean(abs(S), axis=1)
-        return select_per_dictionary(G)[:self.n]
+        return self._select_by_sum(self._G(X, A, S))
 
-class KMX(_Base):
+class SUND(_SUN):
+    def select(self, X, A, S):
+        return self._select_per_dictionary(self._G(X, A, S))
+
+class _KMeans(_Base):
+    """Choose examples based on k-means cluster centroid distances
+    """
+    def _G(self, data, K):
+        labels, _, _ = Pycluster.kcluster(data.T, K)
+        centers, _ = Pycluster.clustercentroids(data.T, clusterid=labels)
+        centers = centers.T
+        G = zeros((K, data.shape[1]))
+        
+        for k in range(K):
+            D = data - expand_dims(centers[:, k], axis=1)
+            G[k, :] = -sqrt(sum(multiply(D, D), axis=0))
+
+        return G
+        
+class KMX(_KMeans):
     """Choose examples based on k-means cluster centroid distances of X
     """
     def select(self, X, A, S):
-        _, K = A.shape
-        labels, _, _ = Pycluster.kcluster(X.T, K)
-        centers, _   = Pycluster.clustercentroids(X.T, clusterid=labels)
-        centers = centers.T
-        G = zeros(S.shape)
-        
-        for k in range(K):
-            D = expand_dims(centers[:, k], axis=1)
-            G[k, :] = 1/sqrt(sum(multiply(D, D), axis=0) + spacing(1))
+        return self._select_per_dictionary(self._G(X, A.shape[1]))
 
-        return select_per_dictionary(G)[:self.n]
-
-class KMS(_Base):
+class KMS(_KMeans):
     """Choose examples based on k-means cluster centroid distances of S
     """
     def select(self, X, A, S):
-        _, K = A.shape
-        labels, _, _ = Pycluster.kcluster(S.T, K)
-        centers, _   = Pycluster.clustercentroids(S.T, clusterid=labels)
-        centers = centers.T
-        G = zeros(S.shape)
-        
-        for k in range(K):
-            D = S - expand_dims(centers[:, k], axis=1)
-            G[k, :] = 1/sqrt(sum(multiply(D, D), axis=0) + spacing(1))
+        return self._select_per_dictionary(self._G(S, A.shape[1]))
 
-        return select_per_dictionary(G)[:self.n]
-
-
-ALL_SELECTORS = [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS]
+#ALL_SELECTORS = [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS]
+ALL_SELECTORS = [Unif, UsedD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS]
 
 if __name__ == '__main__':
     import doctest

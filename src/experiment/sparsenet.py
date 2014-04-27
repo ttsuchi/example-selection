@@ -15,5 +15,5 @@ def create(name):
     plambda = 0.15
     encoders = [LASSO(plambda)]
     updater = SPAMS(encoders[0])
-    return Experiment(name, FromImageDataset('../contrib/sparsenet/IMAGES.mat', p = 16, K = 192),
+    return Experiment(name, FromImageDataset('../contrib/sparsenet/IMAGES.mat', p = 12, K = 144),
                             selectors = selectors, encoders = encoders, updaters = [updater])
