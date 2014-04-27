@@ -136,7 +136,7 @@ class FromImageDataset(Base):
             r=BUFF+randint(image_size-self.p-2*BUFF)
             c=BUFF+randint(image_size-self.p-2*BUFF)
             X[:,n]=this_image[r:(r+self.p), c:(c+self.p)].reshape([self.P, 1])
-        return X, None
+        return X, None, None
 
 
 if __name__ == '__main__':
