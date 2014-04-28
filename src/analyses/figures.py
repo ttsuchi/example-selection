@@ -16,6 +16,9 @@ from algorithms.updating import GD, SPAMS
 def _chosen(design):
     return design.updater.__class__ == GD
 
+def _cidx(designs):
+    return nonzero(array([_chosen(design) for design in designs]))[0]
+
 def _names(designs):
     design_names = [design.name() for design in designs if _chosen(design)]
     return [(string.split(name,'-')[0] if '-' in name else name) for name in design_names]
@@ -103,6 +106,39 @@ def plot_sample_X0(multiple_stats, designs):
     X = designs[0].experiment.Xs[0]
     plt.imshow(to_image(X), aspect = 'equal', interpolation = 'nearest', vmin = 0, vmax = 1)
     plt.axis('off')
+
+def plot_best_dictionaries(multiple_stats, designs):
+    plt.figure(figsize = (6,6), dpi=72, facecolor='w', edgecolor='k')
+    
+    all_history = array([_history(stats, 'dist_A', designs) for stats in multiple_stats])
+
+    sort_data = mean(all_history[:,-1,:].squeeze(), axis=0)
+    idx = argsort(sort_data)
+    
+    print _cidx(designs)
+    print idx[0]
+    i = _cidx(designs)[idx[0]]
+    print "Best design: %s" % designs[i].name()
+
+    A = designs[0].experiment.As[i]
+    plt.imshow(to_image(A), aspect = 'auto', interpolation = 'nearest', vmin = 0, vmax = 1)
+    plt.axis('off')
+    
+def plot_worst_dictionaries(multiple_stats, designs):
+    plt.figure(figsize = (6,6), dpi=72, facecolor='w', edgecolor='k')
+    
+    all_history = array([_history(stats, 'dist_A', designs) for stats in multiple_stats])
+
+    sort_data = -mean(all_history[:,-1,:].squeeze(), axis=0)
+    idx = argsort(sort_data)
+    
+    i = _cidx(designs)[idx[0]]
+    print "Worst design: %s" % designs[i].name()
+
+    A = designs[0].experiment.As[i]
+    plt.imshow(to_image(A), aspect = 'auto', interpolation = 'nearest', vmin = 0, vmax = 1)
+    plt.axis('off')
+
 
 def plot_snr(multiple_stats, designs):
     design_names = _names(designs)
