@@ -14,6 +14,6 @@ def create(name):
     selectors = [cls(400) for cls in ALL_SELECTORS]
     plambda = 0.15
     encoders = [LASSO(plambda)]
-    updater = SPAMS(encoders[0])
+    updater = GD(encoders[0])
     return Experiment(name, FromImageDataset('../contrib/sparsenet/IMAGES.mat', p = 12, K = 144),
                             selectors = selectors, encoders = encoders, updaters = [updater])
