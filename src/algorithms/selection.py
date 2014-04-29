@@ -87,6 +87,18 @@ class MXGD(_Base):
         G = abs(multiply(sum(A * S - X, axis=0), S))  # Auto-broadcasted to the shape of S
         return self._select_per_dictionary(G)
 
+class SNRS(_Base):
+    def select(self, X, A, S):
+        E = X - A*S
+        G = sum(multiply(X,X),axis=0) / (sum(multiply(E,E), axis=0)+spacing(1))
+        return self._select_by_sum(G)
+    
+class SNRD(_Base):
+    def select(self, X, A, S):
+        E = X - A*S
+        G = multiply((sum(multiply(X,X),axis=0) / (sum(multiply(E,E), axis=0)+spacing(1))), S)
+        return self._select_per_dictionary(G)
+
 class SalMap(_Base):
     """Simplified implementation of the saliency map selection.
     Since each example has a single channel (grayscale) and is very small, will only use the "intensity" and "orientation" channels at a single scale.
@@ -172,8 +184,13 @@ class KMS(_KMeans):
     def select(self, X, A, S):
         return self._select_per_dictionary(self._G(S, A.shape[1]))
 
+class ErrS(_Base):
+    def select(self, X, A, S):
+        G = abs(sum(A * S - X, axis=0))
+        return self._select_by_sum(G)
+
 #ALL_SELECTORS = [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS]
-ALL_SELECTORS = [Unif, UsedD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS]
+ALL_SELECTORS = [Unif, UsedD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS, ErrS, SNRD, SNRS]
 
 if __name__ == '__main__':
     import doctest
