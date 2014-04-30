@@ -12,11 +12,11 @@ from algorithms.updating import GD, SPAMS
 from inc.design import Experiment
 
 def create(name):
-    K = 25
+    K = 2
     true_dictionary = Letters(p = 8, K = K)
-    selectors = [cls(K * 10) for cls in [Unif, MXGD, SNRD]]
-    generator = FromDictionaryL1(true_dictionary, snr = 6)
-    encoder = LASSO(generator.plambda())
-    updaters = [GD(encoder, num_iter = 10), SPAMS(encoder, num_iter = 10)]
+    selectors = [cls(K * 10) for cls in [Unif, OLC]]
+    generator = FromDictionaryL0(true_dictionary, nnz=2, snr = 6)
+    encoder = KSparse()
+    updaters = [GD(encoder, num_iter = 10)]
     return Experiment(name, generator, selectors = selectors, encoders = [encoder], updaters = updaters)
 

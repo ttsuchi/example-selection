@@ -8,7 +8,6 @@ from numpy.random import randn
 from numpy.testing import assert_allclose, assert_array_equal
 import matplotlib.pyplot as plt
 import string
-import operator
 
 from data.dictionary import to_image
 

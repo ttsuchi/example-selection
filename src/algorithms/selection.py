@@ -4,14 +4,18 @@ Example selection algorithms use the current dictionary (A) to select a number o
 @author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
 '''
 from numpy import *
-from numpy.random import permutation
+from numpy.random import permutation, randn, randint
 from numpy.testing import assert_allclose
 
 import scipy.ndimage.filters
-
 import Pycluster
-
 import cv2 as cv
+
+from data.dictionary import Random
+from data.generator import FromDictionaryL1
+import time
+from operator import itemgetter
+
 
 class _Base(object):
     def __init__(self, n, **kwds):
@@ -61,12 +65,15 @@ class Unif(_Base):
         N = X.shape[1]
         return permutation(N)[:self.n]
 
+def _is_used(S):
+    return S > S.max(axis=0) * .8
+    
 class UsedD(_Base):
     """Returns examples that use the dictionary element; similar to the algorithm used in K-SVD.
-    For L1 activations, not all activations will be exactly zero. So will consider the dictionary to have been "used" if it's greater than the median.
+    For L1 activations, not all activations will be exactly zero. So will consider the dictionary to have been "used" if it's greater than the mean.
     """
     def select(self, X, A, S):
-        G = (S > median(S, axis=0)) * 1.0
+        G = sum(_is_used(S), axis=0)
         return self._select_per_dictionary(G)
 
 class MagS(_Base):
@@ -189,9 +196,94 @@ class ErrS(_Base):
         G = abs(sum(A * S - X, axis=0))
         return self._select_by_sum(G)
 
+class OLC(_Base):
+    """Overlapping cluster selection algorithm
+    """
+    def select(self, X, A, S):
+        Smax = S.max(axis=0)
+        
+        # Compute the graph G
+        P, N = X.shape
+        _, K = A.shape
+        # Big NxN matrix!
+        us, vs = nonzero(triu(X.T * X) > .5)
+        us = array(us).squeeze(axis=0)
+        vs = array(vs).squeeze(axis=0)
+
+        # Guess the number of nonzero in the generated samples
+        T = N * mean(sum(_is_used(S), axis=0)) / (10 * K)
+        print T
+        
+        # Repeat mk log^2 m times... but just try until we find K clusters
+        C = []
+        while len(C) < K:
+            random_edge = randint(us.size)
+            u, v = us[random_edge], vs[random_edge]
+            gamma_u = vs[us == u]
+            gamma_v = vs[us == v]
+            gamma_uv=intersect1d(gamma_u, gamma_v, assume_unique = True)
+            #Suv = [w for w in gamma_uv if intersect1d(gamma_uv, vs[us == w]).size >= T]
+            Suv = []
+            for w in gamma_uv:
+                if intersect1d(gamma_uv, vs[us == w], assume_unique = True).size >= T:
+                    Suv.append(w)
+                if len(Suv) > self.n:
+                    break
+            
+            # Check if a smaller set contains u and v
+            smaller_sets = [Sab for Sab in C if (u in Sab) and (v in Sab) and Sab.size < Suv.size]
+            
+            if len(smaller_sets) == 0 and len(Suv) > 0:
+                # sort Suv by largest S
+                Suv = list(zip(*sorted(zip(Suv,array(S[:, Suv].max(axis=0)).squeeze(axis=0).tolist()), key=itemgetter(1), reverse=True))[0])
+                C.append(Suv)
+        
+        # Now choose examples for each dictionary element (like _select_per_dictionary)
+        idx = ones(self.n, dtype = int) * -1
+        ki = 0
+        for n in range(self.n):
+            ki = n % len(C)
+            for _ in xrange(K):
+                ji = n / len(C)
+                if len(C[ki]) > ji:
+                    idx[n] = C[ki][ji]
+                    break
+                ki = (ki + 1) % len(C)
+            
+            if idx[n] == -1:
+                print "Warning: exhausted all C"
+                idx[n] = randn(N)
+        
+        return array(idx)
+
 #ALL_SELECTORS = [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS]
-ALL_SELECTORS = [Unif, UsedD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS, ErrS, SNRD, SNRS]
+ALL_SELECTORS = [Unif, UsedD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS, ErrS, SNRD, SNRS, OLC]
+
+def time_algorithms():
+    dictionary=Random(p=10, K=100, sort=False)
+    generator = FromDictionaryL1(dictionary, plambda = 1, snr = 6, N = 10000)
+    A = dictionary.A
+    X, S, _ = generator.generate()
+    
+    selectors = ALL_SELECTORS
+    times = []
+    for selector_cls in selectors:
+        selector = selector_cls(100)
+        trials = []
+        for _ in range(10):
+            start = time.time()
+            selector.select(X, A, S)
+            elapsed = time.time() - start
+            trials.append(elapsed)
+        print "Took %f [s], pm %f [s]" % (mean(array(trials)), std(array(trials)))
+        times.append(trials)
+    
+    return times
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    import sys
+    if len(sys.argv) == 0:
+        import doctest
+        doctest.testmod()
+    else:
+        time_algorithms()
