@@ -103,12 +103,15 @@ class FromDictionaryL1(FromDictionary):
     >>> assert_array_less(-Xgen.generate_S(), zeros((100, 500))+spacing(1)) # Make sure all are non-negative
 
     """
-    def __init__(self, dictionary, lambdaS = 10, **kwds):
+    def __init__(self, dictionary, lambdaS = 1, **kwds):
         self.lambdaS = lambdaS  # Sparsity
         super(FromDictionaryL1, self).__init__(dictionary, **kwds)
     
     def generate_S(self):
         return mtr(-log(rand(self.dictionary.K, self.N)) / self.lambdaS)
+    
+    def plambda(self):
+        return self.sigma ** 2 / self.lambdaS
 
 class FromImageDataset(Base):
     """Generate samples from the IMAGES.mat file from http://redwood.berkeley.edu/bruno/sparsenet/.

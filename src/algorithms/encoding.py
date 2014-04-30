@@ -29,7 +29,7 @@ def equalize_activities(S, eq_power = .5):
     return mtr(multiply(S, power((mean(m) / m) , eq_power)))
 
 
-class Base(object):
+class _Base(object):
     def __init__(self, **kwds):
         pass
 
@@ -40,7 +40,7 @@ class Base(object):
         S[S<0]=0
         return mtr(S)        
 
-class LASSO(Base):
+class LASSO(_Base):
     """Solve the LASSO problem using the SPAMS package:
 
         min_{alpha} 0.5||x-Dalpha||_2^2 + lambda1||alpha||_1 +0.5 lambda2||alpha||_2^2
@@ -48,7 +48,7 @@ class LASSO(Base):
     >>> A = LASSO(plambda = 1).encode(ary(randn(64, 1000)), ary(randn(64, 5)))
     
     """
-    def __init__(self, plambda = .1, max_iter = 1000, **kwds):
+    def __init__(self, plambda = .15, max_iter = 1000, **kwds):
         self.plambda = plambda
         self.iter = max_iter
         self.spams_param = {
@@ -65,7 +65,7 @@ class LASSO(Base):
         S = lasso(X, A, return_reg_path = False, **self.spams_param)
         return S.todense()
 
-class SOMP(Base):
+class SOMP(_Base):
     def __init__(self, K = 3, **kwds):
         self.K = K
         super(SOMP, self).__init__(**kwds)
@@ -76,7 +76,7 @@ class SOMP(Base):
         S=somp(X, A, ind_groups,L=self.K,numThreads=-1)
         return S.todense()
 
-class KSparse(Base):
+class KSparse(_Base):
     def __init__(self, K = 3, **kwds):
         self.K = K
         super(KSparse, self).__init__(**kwds)

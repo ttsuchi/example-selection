@@ -109,21 +109,33 @@ class GD(_Base):
 class SPAMS(_Base):
     """Learns the dictionary using the SPAMS package.
     """
-    def __init__(self, encoder, lambda1 = 0.15, **kwds):
+    def __init__(self, encoder, lambda1 = .15, **kwds):
         super(SPAMS, self).__init__(encoder, **kwds)
-        self.param = {
-            'lambda1':  lambda1,
+            
+        if hasattr(encoder, 'spams_param'):
+            self.param = encoder.spams_param.copy()
+            del self.param['L']
+            del self.param['pos']
+        else:
+            self.param = {
+                'mode': 2,
+                'lambda1':  lambda1,
+                'lambda2':  0
+            }
+
+        self.param.update({
             'posAlpha': True,
             'clean':    False,
             'iter':     self.num_iter,
             'verbose':  False
-            }
+            })
+        print self.param
         self.model = None
     
     def update(self, X, A, itr):
         param = {
           'D': A,
-          'batchsize': 100
+          'batchsize': X.shape[1]
         }
         param.update(self.param)
         
