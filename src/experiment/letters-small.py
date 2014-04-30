@@ -12,7 +12,7 @@ from algorithms.updating import GD, SPAMS
 from inc.design import Experiment
 
 def create(name):
-    K = 2
+    K = 25
     true_dictionary = Letters(p = 8, K = K)
     selectors = [cls(K * 10) for cls in [Unif, OLC]]
     generator = FromDictionaryL0(true_dictionary, nnz=2, snr = 6)
