@@ -231,7 +231,7 @@ class OLC(_Base):
                     break
             
             # Check if a smaller set contains u and v
-            smaller_sets = [Sab for Sab in C if (u in Sab) and (v in Sab) and Sab.size < Suv.size]
+            smaller_sets = [Sab for Sab in C if (u in Sab) and (v in Sab) and len(Sab) < len(Suv)]
             
             if len(smaller_sets) == 0 and len(Suv) > 0:
                 # sort Suv by largest S
