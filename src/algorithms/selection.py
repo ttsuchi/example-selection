@@ -206,36 +206,30 @@ class OLC(_Base):
         P, N = X.shape
         _, K = A.shape
         # Big NxN matrix!
-        us, vs = nonzero(triu(X.T * X) > .5)
-        us = array(us).squeeze(axis=0)
-        vs = array(vs).squeeze(axis=0)
+        D = (X.T * X) > .5
 
         # Guess the number of nonzero in the generated samples
-        T = N * mean(sum(_is_used(S), axis=0)) / (10 * K)
+        sp = mean(sum(_is_used(S), axis=0))
+        T = N * sp / (10 * K)
         print T
         
         # Repeat mk log^2 m times... but just try until we find K clusters
         C = []
-        while len(C) < K:
-            random_edge = randint(us.size)
-            u, v = us[random_edge], vs[random_edge]
-            gamma_u = vs[us == u]
-            gamma_v = vs[us == v]
-            gamma_uv=intersect1d(gamma_u, gamma_v, assume_unique = True)
-            #Suv = [w for w in gamma_uv if intersect1d(gamma_uv, vs[us == w]).size >= T]
-            Suv = []
-            for w in gamma_uv:
-                if intersect1d(gamma_uv, vs[us == w], assume_unique = True).size >= T:
-                    Suv.append(w)
-                if len(Suv) > self.n:
-                    break
+        TL = int(ceil(K*sp))
+        for _ in range(TL):
+            u = randint(N)
+            gamma_u = nonzero(asarray(D[u, :]))[1]
+            v = gamma_u[randint(len(gamma_u))]
+            gamma_uv = asarray(multiply(D[u, :], D[v, :])).squeeze()
+            Suv = nonzero(asarray(sum(D[:, gamma_uv], axis = 1) >= T))[0]
+            # print "Suv size: %d, current set: %d, target %f" % (len(Suv), len(C), TL)
             
             # Check if a smaller set contains u and v
-            smaller_sets = [Sab for Sab in C if (u in Sab) and (v in Sab) and len(Sab) < len(Suv)]
-            
-            if len(smaller_sets) == 0 and len(Suv) > 0:
+            smaller_sets = (True for Sab in C if (u in Sab) and (v in Sab) and len(Sab) < len(Suv))
+
+            if len(Suv) > 0 and not(next(smaller_sets, False)):
                 # sort Suv by largest S
-                Suv = list(zip(*sorted(zip(Suv,array(S[:, Suv].max(axis=0)).squeeze(axis=0).tolist()), key=itemgetter(1), reverse=True))[0])
+                # Suv = list(zip(*sorted(zip(Suv,array(S[:, Suv].max(axis=0)).squeeze(axis=0).tolist()), key=itemgetter(1), reverse=True))[0])
                 C.append(Suv)
         
         # Now choose examples for each dictionary element (like _select_per_dictionary)
