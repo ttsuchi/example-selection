@@ -28,6 +28,8 @@ def equalize_activities(S, eq_power = .5):
     # Try to equalize variance of mean
     return mtr(multiply(S, power((mean(m) / m) , eq_power)))
 
+def _normalize(A):
+    return asfortranarray(A / tile(sqrt(multiply(A,A).sum(axis=0)),(A.shape[0],1)))
 
 class _Base(object):
     def __init__(self, **kwds):
@@ -36,7 +38,7 @@ class _Base(object):
     def encode(self, X, A):
         """Clean up and equalize the variance.
         """
-        S = self._encode(X,A)
+        S = self._encode(X,_normalize(A))
         S[S<0]=0
         return mtr(S)        
 
@@ -72,7 +74,7 @@ class SOMP(_Base):
         
     def _encode(self, X, A):
         # Solve min_{A_i} ||A_i||_{0,infty}  s.t  ||X_i-D A_i||_2^2 <= eps*n_i
-        ind_groups = arange(0, X.shape[1], 10, dtype=int64)
+        ind_groups = arange(0, X.shape[1], 10, dtype=int32)
         S=somp(X, A, ind_groups,L=self.K,numThreads=-1)
         return S.todense()
 
