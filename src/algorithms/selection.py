@@ -211,7 +211,6 @@ class OLC(_Base):
         # Guess the number of nonzero in the generated samples
         sp = mean(sum(_is_used(S), axis=0))
         T = N * sp / (10 * K)
-        print T
         
         # Repeat mk log^2 m times... but just try until we find K clusters
         C = []
