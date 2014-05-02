@@ -68,25 +68,25 @@ class LASSO(_Base):
         return S.todense()
 
 class SOMP(_Base):
-    def __init__(self, K = 3, **kwds):
-        self.K = K
+    def __init__(self, nnz = 3, **kwds):
+        self.nnz = nnz
         super(SOMP, self).__init__(**kwds)
         
     def _encode(self, X, A):
         # Solve min_{A_i} ||A_i||_{0,infty}  s.t  ||X_i-D A_i||_2^2 <= eps*n_i
         ind_groups = arange(0, X.shape[1], 10, dtype=int32)
-        S=somp(X, A, ind_groups,L=self.K,numThreads=-1)
+        S=somp(X, A, ind_groups, L=self.nnz, numThreads=-1)
         return S.todense()
 
 class KSparse(_Base):
-    def __init__(self, K = 3, **kwds):
-        self.K = K
+    def __init__(self, nnz = 3, **kwds):
+        self.nnz = nnz
         super(KSparse, self).__init__(**kwds)
 
     def _encode(self, X, A):
         """Picks the top K maximum activations for each column.
         
-        >>> print KSparse(K=2).encode(X=matrix([[1,6,7],[2,5,9],[3,4,8]]), A=eye(3))
+        >>> print KSparse(nnz=2).encode(X=matrix([[1,6,7],[2,5,9],[3,4,8]]), A=eye(3))
         [[ 0.  6.  0.]
          [ 2.  5.  9.]
          [ 3.  0.  8.]]
@@ -94,7 +94,7 @@ class KSparse(_Base):
         S0 = A.T * X
         S = zeros(S0.shape)
         js=arange(S0.shape[1])
-        for _ in range(self.K):
+        for _ in range(self.nnz):
             idx = argmax(S0, axis=0)
             S[idx,js]=S0[idx,js]
             S0[idx,js]=0

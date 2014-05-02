@@ -4,7 +4,6 @@ Runs the experiment.
 
 @author: Tomoki Tsuchida <ttsuchida@ucsd.edu>
 '''
-from importlib import import_module
 from inc.design import Experiment
 from inc.execution import Serial, IParallel
 
@@ -17,9 +16,7 @@ def main(name, subname, num_iter, save_every, plot_every, parallel = False, clea
     experiment = None if clean else Experiment.load(experiment_name)
     if experiment is None:
         print "Creating %s" % experiment_name
-        experiment_module = import_module("experiment." + name)
-        create = getattr(experiment_module, 'create')
-        experiment = create(experiment_name)
+        experiment = Experiment.load_json(name)
     else:
         print "Loaded %s, starting with iteration = %d" % (experiment_name, experiment.itr)
 

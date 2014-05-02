@@ -18,7 +18,8 @@ from algorithms.updating import update_with
 from inc.common import mtr
 from inc.execution import Serial
 from analyses.stats import plot_stats
-
+from importlib import import_module
+import json
 import datetime
 import time
 
@@ -30,7 +31,7 @@ class Design(object):
         self.experiment = experiment
         self.selector = selector
         self.encoder = encoder
-        self.updater = updater       
+        self.updater = updater
 
     def name(self):
         objs = []
@@ -55,6 +56,10 @@ class Experiment(object):
 
         if designs is None:
             designs = [Design(self, selector, encoder, updater) for selector, encoder, updater in itertools.product(selectors, encoders, updaters)]
+        else:
+            for design in designs:
+                design.experiment = self
+
         self.designs = designs
 
         # Initial dictionary set with some example sets
@@ -105,6 +110,46 @@ class Experiment(object):
                 return pickle.load(fin)
         else:
             return None
+    
+    JSON_DIR = 'experiment/'
+    
+    @classmethod
+    def load_json(cls, name):
+        file_name = Experiment.JSON_DIR + name + '.json'
+        if os.path.isfile(file_name):
+            with open(file_name, 'r') as fin:
+                return Experiment.create_from_dict(json.load(fin))
+        else:
+            raise Exception('Colud not find ' + file_name)
+    
+    @classmethod
+    def create_from_dict(cls, d):
+        name = d['name']
+        generator_class = getattr(import_module("data.generator"), d['generator']['cls'])
+        if d['generator'].has_key('true_dictionary'):
+            dictionary_class = getattr(import_module("data.dictionary"), d['generator']['true_dictionary']['cls'])
+            dictionary = dictionary_class(**d['generator']['true_dictionary'])
+            generator = generator_class(dictionary, **d['generator'])
+        else:
+            generator = generator_class(**d['generator'])
+
+        m_selector = import_module('algorithms.selection')
+        m_encoder = import_module('algorithms.encoding')
+        m_updater = import_module('algorithms.updating')
+        sd = d['selectors_param'] if d.has_key('selectors_param') else {}
+        ed = d['encoders_param'] if d.has_key('encoders_param') else {}
+        ud = d['updaters_param'] if d.has_key('updaters_param') else {}
+        designs = []
+        for d_selector, d_encoder, d_updater in itertools.product(d['selectors'], d['encoders'], d['updaters']):
+            sp = sd.copy(); sp.update(d_selector); del sp['cls']
+            ep = ed.copy(); ep.update(d_encoder);  del ep['cls']
+            up = ud.copy(); up.update(d_updater);  del up['cls']
+            selector = (getattr(m_selector, d_selector['cls']))(**sp)
+            encoder  = (getattr(m_encoder,   d_encoder['cls']))(**ep)
+            updater  = (getattr(m_updater,   d_updater['cls']))(encoder, **up)
+            designs.append(Design(None, selector, encoder, updater))
+        
+        return Experiment(name, generator, designs = designs)
 
     def estimated_finish(self, num_iter):
         mean_elapsed = self.all_stats['elapsed'].mean()

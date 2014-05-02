@@ -8,7 +8,7 @@ from numpy import power
 from numpy.testing import assert_allclose, assert_equal
 from data.dictionary import normalize
 
-from algorithms.encoding import equalize_activities, KSparse
+from algorithms.encoding import equalize_activities, KSparse, SOMP
 from analyses.stats import collect_stats
 from inc.common import mtr
 
@@ -112,7 +112,14 @@ class SPAMS(_Base):
     def __init__(self, encoder, lambda1 = .15, **kwds):
         super(SPAMS, self).__init__(encoder, **kwds)
             
-        if hasattr(encoder, 'spams_param'):
+        if encoder.__class__ == SOMP:
+            # Use the SOMP here too
+            self.param = {
+                'mode': 4,
+                'lambda1':  encoder.nnz
+            }
+        
+        elif hasattr(encoder, 'spams_param'):
             self.param = encoder.spams_param.copy()
             del self.param['L']
             del self.param['pos']
@@ -129,6 +136,7 @@ class SPAMS(_Base):
             'iter':     self.num_iter,
             'verbose':  False
             })
+        
         print self.param
         self.model = None
     

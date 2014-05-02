@@ -1,0 +1,40 @@
+{
+  "name": "gabors",
+  "generator": {
+    "cls": "FromDictionaryL1",
+    "lambdaS": 1,
+    "snr": 6,
+    "true_dictionary": {
+      "cls": "RandomGabors",
+      "p": 12,
+      "K": 25
+    }
+  },
+  "encoders": [
+    {
+      "cls": "KSparse",
+      "nnz": 3
+    }, {
+      "cls": "LASSO",
+      "plambda": 0.15
+    }
+  ],
+  "updaters_param": {
+    "num_iter": 30
+  },
+  "updaters": [
+    {
+      "cls": "GD"
+    }, {
+      "cls": "SPAMS"
+    }
+  ],
+  "selectors_param": {
+    "n": 250
+  },
+  "selectors": [
+    {"cls": "Unif"}, {"cls": "UsedD"}, {"cls": "MXGS"}, {"cls": "MXGD"}, 
+    {"cls": "SalMap"}, {"cls": "SUNS"}, {"cls": "SUND"}, {"cls": "KMX"}, 
+    {"cls": "KMS"}, {"cls": "ErrS"}, {"cls": "SNRD"}, {"cls": "SNRS"}
+  ]
+}
