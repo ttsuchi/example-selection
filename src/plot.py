@@ -27,7 +27,10 @@ def main(figname, name, subname, collect = [], tikz = False, pdf = True):
     plot_fn = getattr(figures_module, "plot_" + figname)
     collect_fns = [getattr(figures_module, 'collect_' + collect_name) for collect_name in collect]
 
-    pattern = name + '-' + subname + '[0-9]*\.pkl'
+    names = [name]
+    if len(subname) > 0:
+        names.append(subname)
+    pattern = string.join(names, '-') + '[0-9]*\.pkl'
     multiple_stats = []
     designs = None
     for experiment in [Experiment.load(splitext(basename(f))[0]) for f in os.listdir(Experiment.SAVE_DIR) if re.match(pattern, f)]:

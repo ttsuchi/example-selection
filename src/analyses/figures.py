@@ -11,6 +11,7 @@ import string
 
 from data.dictionary import to_image
 
+from algorithms.encoding import LASSO, SOMP, KSparse
 from algorithms.updating import GD, SPAMS
 
 # Filters
@@ -22,6 +23,15 @@ def collect_only_gd(design):
 
 def collect_only_spams(design):
     return design.updater.__class__ == SPAMS
+
+def collect_only_ksparse(design):
+    return design.encoder.__class__ == KSparse
+
+def collect_only_lasso(design):
+    return design.encoder.__class__ == LASSO
+
+def collect_only_somp(design):
+    return design.encoder.__class__ == SOMP
 
 # Plots
 
