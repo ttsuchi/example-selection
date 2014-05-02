@@ -118,13 +118,12 @@ class Experiment(object):
         file_name = Experiment.JSON_DIR + name + '.json'
         if os.path.isfile(file_name):
             with open(file_name, 'r') as fin:
-                return Experiment.create_from_dict(json.load(fin))
+                return Experiment.create_from_dict(name, json.load(fin))
         else:
             raise Exception('Colud not find ' + file_name)
     
     @classmethod
-    def create_from_dict(cls, d):
-        name = d['name']
+    def create_from_dict(cls, name, d):
         generator_class = getattr(import_module("data.generator"), d['generator']['cls'])
         if d['generator'].has_key('true_dictionary'):
             dictionary_class = getattr(import_module("data.dictionary"), d['generator']['true_dictionary']['cls'])

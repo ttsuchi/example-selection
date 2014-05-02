@@ -1,11 +1,11 @@
 {
   "generator": {
-    "cls": "FromDictionaryL1",
-    "lambdaS": 1,
+    "cls": "FromDictionaryL0",
+    "nnz": 3,
     "snr": 6,
     "true_dictionary": {
-      "cls": "RandomGabors",
-      "p": 12,
+      "cls": "Letters",
+      "p": 8,
       "K": 25
     }
   },
@@ -14,8 +14,8 @@
       "cls": "KSparse",
       "nnz": 3
     }, {
-      "cls": "LASSO",
-      "plambda": 0.15
+      "cls": "SOMP",
+      "nnz": 3
     }
   ],
   "updaters_param": {
