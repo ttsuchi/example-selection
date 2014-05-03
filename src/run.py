@@ -17,6 +17,7 @@ def main(name, subname, num_iter, save_every, plot_every, parallel = False, clea
     if experiment is None:
         print "Creating %s" % experiment_name
         experiment = Experiment.load_json(name)
+        experiment.name = experiment_name
     else:
         print "Loaded %s, starting with iteration = %d" % (experiment_name, experiment.itr)
 
