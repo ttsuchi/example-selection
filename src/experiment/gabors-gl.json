@@ -28,7 +28,7 @@
   },
   "selectors": [
     {"cls": "Unif"}, {"cls": "UsedD"}, {"cls": "MXGS"}, {"cls": "MXGD"}, 
-    {"cls": "SalMap"}, {"cls": "SUNS"}, {"cls": "SUND"}, {"cls": "KMX"}, 
-    {"cls": "KMS"}, {"cls": "ErrS"}, {"cls": "SNRD"}, {"cls": "SNRS"}
+    {"cls": "SalMap"}, {"cls": "SUNS"}, {"cls": "SUND"}, 
+    {"cls": "ErrS"}, {"cls": "SNRD"}, {"cls": "SNRS"}
   ]
 }
