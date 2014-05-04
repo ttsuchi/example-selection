@@ -1,0 +1,36 @@
+{
+  "generator": {
+    "cls": "FromDictionaryL0",
+    "nnz": 3,
+    "snr": 6,
+    "true_dictionary": {
+      "cls": "Letters",
+      "p": 12,
+      "K": 25
+    }
+  },
+  "encoders": [
+    {
+      "cls": "LASSO",
+      "plambda": 0.15
+    }
+  ],
+  "updaters_param": {
+    "num_iter": 30
+  },
+  "updaters": [
+    {
+      "cls": "GD"
+    }, {
+      "cls": "SPAMS"
+    }
+  ],
+  "selectors_param": {
+    "n": 250
+  },
+  "selectors": [
+    {"cls": "Unif"}, {"cls": "UsedD"}, {"cls": "MXGS"}, {"cls": "MXGD"}, 
+    {"cls": "SalMap"}, {"cls": "SUNS"}, {"cls": "SUND"}, {"cls": "KMX"}, 
+    {"cls": "KMS"}, {"cls": "ErrS"}, {"cls": "SNRD"}, {"cls": "SNRS"}
+  ]
+}
