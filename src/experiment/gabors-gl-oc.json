@@ -1,0 +1,34 @@
+{
+  "generator": {
+    "cls": "FromDictionaryL1",
+    "lambdaS": 1,
+    "snr": 6,
+    "true_dictionary": {
+      "cls": "RandomGabors",
+      "p": 12,
+      "K": 25
+    }
+  },
+  "encoders": [
+    {
+      "cls": "LASSO",
+      "plambda": 0.15
+    }
+  ],
+  "updaters_param": {
+    "num_iter": 10
+  },
+  "updaters": [
+    {
+      "cls": "GD"
+    }
+  ],
+  "selectors_param": {
+    "n": 250
+  },
+  "selectors": [
+    {"cls": "Unif"}, {"cls": "UsedD"}, {"cls": "MXGS"}, {"cls": "MXGD"}, 
+    {"cls": "SalMap"}, {"cls": "SUNS"}, {"cls": "SUND"}, 
+    {"cls": "ErrS"}, {"cls": "SNRD"}, {"cls": "SNRS"}
+  ]
+}
