@@ -6,7 +6,7 @@
     "true_dictionary": {
       "cls": "RandomGabors",
       "p": 12,
-      "K": 25
+      "K": 256
     }
   },
   "encoders": [
