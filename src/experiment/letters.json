@@ -24,8 +24,6 @@
   "updaters": [
     {
       "cls": "GD"
-    }, {
-      "cls": "SPAMS"
     }
   ],
   "selectors_param": {

@@ -103,8 +103,8 @@ class DictionarySet(object):
         self.A = A
         self.P, self.K = A.shape
 
-    def coherency(self):
-        """Calculate the coherency value for this dictionary, which is the maximum inner product.
+    def coherence(self):
+        """Calculate the coherence value for this dictionary, which is the maximum inner product.
         """
         C = dot(self.A.T, self.A)
         return abs(C - diag(diag(C))).max()
@@ -112,7 +112,7 @@ class DictionarySet(object):
     def mu(self):
         return self.coherency() * sqrt(self.K)
     
-    def mean_coherency(self):
+    def mean_coherence(self):
         """Coherency measure
         """
         C = dot(self.A.T, self.A)

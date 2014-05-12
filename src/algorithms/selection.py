@@ -65,6 +65,9 @@ class Unif(_Base):
         N = X.shape[1]
         return permutation(N)[:self.n]
 
+    def group(self):
+        return (0, 0)
+
 def _is_used(S):
     return S > S.max(axis=0) * .8
     
@@ -76,35 +79,56 @@ class UsedD(_Base):
         G = sum(_is_used(S), axis=0)
         return self._select_per_dictionary(G)
 
+    def group(self):
+        return (2, 0)
+
 class MagS(_Base):
     def select(self, X, A, S):
         return self._select_by_sum(abs(S))
+
+    def group(self):
+        return (1, 0)
 
 class MagD(_Base):
     def select(self, X, A, S):
         return self._select_per_dictionary(abs(S))
 
+    def group(self):
+        return (2, 0)
+
 class MXGS(_Base):
     def select(self, X, A, S):
         G = abs(multiply(sum(A * S - X, axis=0), S))  # Auto-broadcasted to the shape of S
         return self._select_by_sum(G)
+
+    def group(self):
+        return (1, 0)
     
 class MXGD(_Base):
     def select(self, X, A, S):
         G = abs(multiply(sum(A * S - X, axis=0), S))  # Auto-broadcasted to the shape of S
         return self._select_per_dictionary(G)
 
+    def group(self):
+        return (2, 0)
+
 class SNRS(_Base):
     def select(self, X, A, S):
         E = X - A*S
         G = sum(multiply(X,X),axis=0) / (sum(multiply(E,E), axis=0)+spacing(1))
         return self._select_by_sum(G)
-    
+
+    def group(self):
+        return (1, 0)
+
 class SNRD(_Base):
     def select(self, X, A, S):
         E = X - A*S
         G = multiply((sum(multiply(X,X),axis=0) / (sum(multiply(E,E), axis=0)+spacing(1))), S)
         return self._select_per_dictionary(G)
+
+    def group(self):
+        return (2, 0)
 
 class SalMap(_Base):
     """Simplified implementation of the saliency map selection.
@@ -145,6 +169,9 @@ class SalMap(_Base):
         G = .5 * (I + O)
         return self._select_by_sum(G)
 
+    def group(self):
+        return (0, 1)
+
 class _SUN(_Base):
     """Simplified implementation of the saliency using natural statistics.
     Will assume exponential distribution on non-zero components. That means the saliency is simply s / mean(s) for each dimension.
@@ -160,9 +187,15 @@ class SUNS(_SUN):
     def select(self, X, A, S):
         return self._select_by_sum(self._G(X, A, S))
 
+    def group(self):
+        return (1, 1)
+
 class SUND(_SUN):
     def select(self, X, A, S):
         return self._select_per_dictionary(self._G(X, A, S))
+
+    def group(self):
+        return (2, 1)
 
 class _KMeans(_Base):
     """Choose examples based on k-means cluster centroid distances
@@ -185,16 +218,25 @@ class KMX(_KMeans):
     def select(self, X, A, S):
         return self._select_per_dictionary(self._G(X, A.shape[1]))
 
+    def group(self):
+        return (0, 2)
+
 class KMS(_KMeans):
     """Choose examples based on k-means cluster centroid distances of S
     """
     def select(self, X, A, S):
         return self._select_per_dictionary(self._G(S, A.shape[1]))
 
+    def group(self):
+        return (0, 2)
+
 class ErrS(_Base):
     def select(self, X, A, S):
         G = abs(sum(A * S - X, axis=0))
         return self._select_by_sum(G)
+
+    def group(self):
+        return (1, 0)
 
 class OLC(_Base):
     """Overlapping cluster selection algorithm
@@ -248,6 +290,9 @@ class OLC(_Base):
                 idx[n] = randn(N)
         
         return array(idx)
+
+    def group(self):
+        return (2, 0)
 
 #ALL_SELECTORS = [Unif, UsedD, MagS, MagD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS]
 ALL_SELECTORS = [Unif, UsedD, MXGS, MXGD, SalMap, SUNS, SUND, KMX, KMS, ErrS, SNRD, SNRS, OLC]
