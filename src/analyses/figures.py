@@ -227,7 +227,43 @@ def plot_snr(data, style_fns):
         plt.gca().set_xticklabels([d['name'] for d in data])
         plt.ylabel("SNR of selected examples [dB]")
 
+def plot_xp_dist(data, style_fns):
+    for d in data:
+        dist_A = array([stat['dist_A'].as_matrix().T for stat in d['stats']])  # run-by-time
+        d['last'] = mean(dist_A, axis=0)[-1]
+        xpd = array([stat['mean_Xp_dist'].as_matrix().T for stat in d['stats']])  # run-by-time
+        d['mean_xpd'] = mean(xpd, axis=0)[-1]    
+        d['std_xpd'] = mean(xpd, axis=0)[-1]    
+    
+    # Sort by the last performance
+    data = sorted(data, key=lambda d: d['last'])
 
+    y = array([d['mean_xpd'] for d in data])
+    yerr = array([d['std_xpd'] for d in data])
+
+    ind = arange(len(y))
+    width = .8
+    horizontal = True
+
+    if horizontal:
+        bars = plt.barh(ind, y, width, color = 'b')
+    else:
+        bars = plt.bar(ind, y, width, color = 'b', yerr = yerr)
+
+    _set_fonts()
+
+    for bar, d in zip(bars, data):
+        for style_fn in style_fns:
+            style_fn(bar, d['design'].selector.group())
+
+    if horizontal:
+        plt.gca().set_yticks(ind+width/2)
+        plt.gca().set_yticklabels([d['name'] for d in data])
+        plt.xlabel("Mean distance among selected examples")
+    else:
+        plt.gca().set_xticks(ind+width/2)
+        plt.gca().set_xticklabels([d['name'] for d in data])
+        plt.ylabel("Mean distance among selected examples")
 
 if __name__ == '__main__':
     import doctest

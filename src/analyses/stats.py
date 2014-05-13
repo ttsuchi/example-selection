@@ -28,17 +28,20 @@ def collect_stats(X, A, oldA, Astar, S, Sstar, Xsnr, idx):
     
     >>> assert_allclose( newA, normalize(matrix([[1,1,0],[1,0,1]])) )
     """
-    R = X - A*S
-    Rp = X[:,idx] - A*S[:,idx]
+    Xp = X[:,idx]
+    R  = X - A*S
+    Rp = Xp - A*S[:,idx]
     diff_A = A - oldA 
     Sm = mean(S,axis=1)
+    Xc = Xp.T*Xp
     stats = {
         'loss_all':     mean(multiply(R, R)),
         'loss_sampled': mean(multiply(Rp,Rp)),
         'diff_A':       mean(multiply(diff_A, diff_A)),
         'std_S':        std(Sm),
         'mean_S':       mean(Sm),
-        'cv':           std(Sm) / mean(Sm)
+        'cv':           std(Sm) / mean(Sm),
+        'mean_Xp_dist': mean(diag(Xc))-mean(Xc)
     }
     
     if Xsnr is not None:
@@ -78,6 +81,7 @@ def plot_stats(stats, design_names):
     N = 4
     N+= 3 if 'dist_A' in stats[0].columns else 0
     N+= 1 if 'mean_Xsnr' in stats[0].columns else 0
+    N+= 1 if 'mean_Xp_dist' in stats[0].columns else 0
 
     plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
     plt.clf()
@@ -119,6 +123,10 @@ def plot_stats(stats, design_names):
         plt.plot(_history(stats,'mean_Xsnr_p'))
         plt.title("SNR of selected examples")
         
+    if 'mean_Xp_dist' in stats[0].columns:
+        plt.subplot(N,1,8)
+        plt.plot(_history(stats,'mean_Xp_dist'))
+        plt.title("Mean distances of selected examples")
 
     plt.subplot(N,1,N)
     plt.plot(zeros((2,len(design_names))))
