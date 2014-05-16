@@ -1,0 +1,31 @@
+{
+  "generator": {
+    "cls": "FromImageDataset",
+    "images_mat": "../contrib/sparsenet/IMAGES.mat",
+    "random": false,
+    "p": 12,
+    "K": 196,
+    "N": 2000000
+  },
+  "encoders": [
+    {
+      "cls": "KSparse",
+      "nnz": 3,
+      "pos": true
+    }
+  ],
+  "updaters_param": {
+    "num_iter": 100
+  },
+  "updaters": [
+    {
+      "cls": "GD"
+    }
+  ],
+  "selectors_param": {
+    "n": 500000
+  },
+  "selectors": [
+    {"cls": "Unif"}
+  ]
+}

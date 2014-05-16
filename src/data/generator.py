@@ -125,22 +125,58 @@ class FromImageDataset(Base):
     
     """
     
-    def __init__(self, images_mat, **kwds):
+    def __init__(self, images_mat, random = True, **kwds):
         super(FromImageDataset, self).__init__(**kwds)
         self.images = loadmat(images_mat)['IMAGES']
+        self.random = random
+        self.image_idx = 0
+        print "Using random mode: %r" % self.random
 
     def generate(self):
+        if self.random:
+            return self.generate_random()
+        else:
+            return self.generate_sliding()
+
+    def generate_random(self):
         image_size, _, num_images = self.images.shape
-        this_image = self.images[:, :, randint(num_images)].squeeze()
+        # this_image = self.images[:, :, randint(num_images)].squeeze()
         BUFF = 4
         
         X = mtr(zeros((self.P, self.N)))
         for n in range(self.N):
             r=BUFF+randint(image_size-self.p-2*BUFF)
             c=BUFF+randint(image_size-self.p-2*BUFF)
-            X[:,n]=this_image[r:(r+self.p), c:(c+self.p)].reshape([self.P, 1])
+            X[:,n]=self.images[r:(r+self.p), c:(c+self.p), randint(num_images)].reshape([self.P, 1])
         return X, None, None
 
+    def generate_sliding(self):
+        _, _, num_images = self.images.shape
+        
+        X = mtr(zeros((self.P, self.N)))
+        n = 0
+        while n < self.N:
+            im = self._im2col(self.images[:, :, self.image_idx].squeeze(), self.p)
+            s = min(self.N, n + im.shape[1])
+            print s
+            print im.shape
+            X[:, n:s] = im[:, :(s - n)]
+            self.image_idx = (self.image_idx + 1) % num_images
+            n += im.shape[1]
+        return X, None, None
+
+    def _im2col(self, im, p):
+        rows,cols = im.shape
+        final = zeros((rows, cols, p, p))
+        for x in range(p):
+            for y in range(p):
+                im1 = vstack((im[x:],im[:x]))
+                im1 = column_stack((im1[:,y:],im1[:,:y]))
+                final[x::p,y::p] = swapaxes(im1.reshape(rows/p,p,cols/p,-1),1,2)
+        # Remove end ones
+        final = final[:rows-p, :cols-p, :, :]
+        final = final.reshape(((rows-p)*(cols-p), p*p))
+        return swapaxes(final,0,1)        
 
 if __name__ == '__main__':
     import doctest

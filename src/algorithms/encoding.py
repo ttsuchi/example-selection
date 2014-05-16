@@ -13,7 +13,7 @@ def equalize_activities(S, eq_power = .5):
     """Equalizes the activity.
     When eq_factor is closer to 1, more equalization takes place
     """
-    m = mean(S, axis=1)
+    m = mean(abs(S), axis=1)
     assert m.shape == (S.shape[0], 1)
     
     dead_idx=m < 1e-12
@@ -50,15 +50,16 @@ class LASSO(_Base):
     >>> A = LASSO(plambda = 1).encode(ary(randn(64, 1000)), ary(randn(64, 5)))
     
     """
-    def __init__(self, plambda = .15, max_iter = 1000, **kwds):
+    def __init__(self, plambda = .15, max_iter = 1000, pos = True, **kwds):
         self.plambda = plambda
         self.iter = max_iter
         self.spams_param = {
             'mode':      2,  
             'lambda1':   plambda,
             'lambda2':   0,
-            'L':         max_iter,
-            'pos':       True,
+            # 'L':         max_iter,
+            'pos':       pos,
+            'verbose':   True,
             'numThreads': -1
             }
         super(LASSO, self).__init__(**kwds)

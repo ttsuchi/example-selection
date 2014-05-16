@@ -1,0 +1,31 @@
+{
+  "generator": {
+    "cls": "FromImageDataset",
+    "images_mat": "../contrib/sparsenet/IMAGES.mat",
+    "random": false,
+    "p": 8,
+    "K": 64,
+    "N": 3000000
+  },
+  "encoders": [
+    {
+      "cls": "LASSO",
+      "plambda": 0.35,
+      "pos": true
+    }
+  ],
+  "updaters_param": {
+    "num_iter": 100
+  },
+  "updaters": [
+    {
+      "cls": "SPAMS"
+    }
+  ],
+  "selectors_param": {
+    "n": 1000000
+  },
+  "selectors": [
+    {"cls": "Unif"}
+  ]
+}

@@ -121,20 +121,22 @@ class SPAMS(_Base):
         
         elif hasattr(encoder, 'spams_param'):
             self.param = encoder.spams_param.copy()
-            del self.param['L']
+            if self.param.has_key('L'):
+                del self.param['L']
+            self.param['posAlpha'] = self.param['pos']
             del self.param['pos']
         else:
             self.param = {
+                'posAlpha': True,
                 'mode': 2,
                 'lambda1':  lambda1,
                 'lambda2':  0
             }
 
         self.param.update({
-            'posAlpha': True,
             'clean':    False,
             'iter':     self.num_iter,
-            'verbose':  False
+            'verbose':  True
             })
         
         print self.param
@@ -143,7 +145,7 @@ class SPAMS(_Base):
     def update(self, X, A, itr):
         param = {
           'D': A,
-          'batchsize': X.shape[1]
+          'batchsize': 1000 #X.shape[1]
         }
         param.update(self.param)
         

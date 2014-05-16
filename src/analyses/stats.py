@@ -33,7 +33,7 @@ def collect_stats(X, A, oldA, Astar, S, Sstar, Xsnr, idx):
     Rp = Xp - A*S[:,idx]
     diff_A = A - oldA 
     Sm = mean(S,axis=1)
-    Xc = Xp.T*Xp
+    Xc = Xp[:,:1000].T*Xp[:,:1000]
     stats = {
         'loss_all':     mean(multiply(R, R)),
         'loss_sampled': mean(multiply(Rp,Rp)),
@@ -82,31 +82,32 @@ def plot_stats(stats, design_names):
     N+= 3 if 'dist_A' in stats[0].columns else 0
     N+= 1 if 'mean_Xsnr' in stats[0].columns else 0
     N+= 1 if 'mean_Xp_dist' in stats[0].columns else 0
+    n = 1
 
     plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
     plt.clf()
     
-    plt.subplot(N,1,1)
+    plt.subplot(N,1,n); n += 1
     plt.plot(_history(stats,'loss_sampled'))
     plt.gca().set_xticklabels([])
     plt.title("loss for the sampled set")
 
-    plt.subplot(N,1,2)
+    plt.subplot(N,1,n); n += 1
     plt.plot(_history(stats,'loss_all'))
     plt.gca().set_xticklabels([])
     plt.title("loss for all training set")
 
-    plt.subplot(N,1,3)
+    plt.subplot(N,1,n); n += 1
     plt.plot(_history(stats,'diff_A'))
     plt.title("difference in A")
 
     if 'dist_A' in stats[0].columns:
-        plt.subplot(N,1,4)
+        plt.subplot(N,1,n); n += 1
         plt.plot(_history(stats,'dist_A'))
         plt.gca().set_xticklabels([])
         plt.title("average distance from the true dictionary")
 
-        plt.subplot(N,1,5)
+        plt.subplot(N,1,n); n += 1
         data = _history(stats,'dist_A')[-1,:].T
         ind = arange(data.shape[0])
         width = .8
@@ -114,17 +115,17 @@ def plot_stats(stats, design_names):
         plt.gca().set_xticks(ind+width/2)
         plt.gca().set_xticklabels(design_names)
         
-        plt.subplot(N,1,6)
+        plt.subplot(N,1,n); n += 1
         plt.plot(_history(stats,'dist_S'))
         plt.title("average distance from the true activation")
 
     if 'mean_Xsnr' in stats[0].columns:
-        plt.subplot(N,1,7)
+        plt.subplot(N,1,n); n += 1
         plt.plot(_history(stats,'mean_Xsnr_p'))
         plt.title("SNR of selected examples")
         
     if 'mean_Xp_dist' in stats[0].columns:
-        plt.subplot(N,1,8)
+        plt.subplot(N,1,n); n += 1
         plt.plot(_history(stats,'mean_Xp_dist'))
         plt.title("Mean distances of selected examples")
 
