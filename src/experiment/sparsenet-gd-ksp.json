@@ -3,14 +3,14 @@
     "cls": "FromImageDataset",
     "images_mat": "../contrib/sparsenet/IMAGES.mat",
     "random": false,
-    "p": 8,
-    "K": 64,
-    "N": 3000000
+    "p": 12,
+    "K": 196,
+    "N": 2000000
   },
   "encoders": [
     {
-      "cls": "LASSO",
-      "plambda": 0.35,
+      "cls": "KSparse",
+      "nnz": 3,
       "pos": true
     }
   ],
@@ -19,11 +19,11 @@
   },
   "updaters": [
     {
-      "cls": "SPAMS"
+      "cls": "GD"
     }
   ],
   "selectors_param": {
-    "n": 1000000
+    "n": 500000
   },
   "selectors": [
     {"cls": "Unif"}
