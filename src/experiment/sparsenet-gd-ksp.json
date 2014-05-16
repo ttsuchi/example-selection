@@ -3,7 +3,7 @@
     "cls": "FromImageDataset",
     "images_mat": "../contrib/sparsenet/IMAGES.mat",
     "random": false,
-    "p": 12,
+    "p": 8,
     "K": 196,
     "N": 2000000
   },
