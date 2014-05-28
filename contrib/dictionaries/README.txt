@@ -1,0 +1,1 @@
+These are dictionary files used in the paper "Learned dictionaries for sparse image representation: Properties and results" by Skretting and Engan. They were downloaded http://www.ux.uis.no/~karlsk/dle/ from on 2014-05-28.
