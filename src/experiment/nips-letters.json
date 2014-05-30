@@ -1,0 +1,42 @@
+{
+  "generator": {
+    "cls": "FromDictionaryL0",
+    "nnz": 5,
+    "lambdaS": 1,
+    "snr": 6.28,
+    "true_dictionary": {
+      "cls": "FromFile",
+      "matfile": "../contrib/letters/alphabet-8.mat",
+      "p": 8,
+      "K": 25
+    },
+    "N": 10000
+  },
+  "encoders": [
+    {
+      "cls": "LASSO",
+      "plambda": 3.014
+    }, {
+      "cls": "SOMP",
+      "nnz": 5
+    }, {
+      "cls": "KSparse",
+      "nnz": 5
+    }
+  ],
+  "updaters_param": {
+    "num_iter": 10
+  },
+  "updaters": [
+    {
+      "cls": "GD"
+    }
+  ],
+  "selectors_param": {
+    "n": 100
+  },
+  "selectors": [
+    {"cls": "Unif"}, {"cls": "ErrS"}, {"cls": "MXGS"}, {"cls": "MXGD"}, 
+    {"cls": "SNRS"}, {"cls": "SNRD"}, {"cls": "SUNS"}, {"cls": "SUND"}, {"cls": "SalMap"}
+  ]
+}
