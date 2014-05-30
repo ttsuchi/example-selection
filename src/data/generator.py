@@ -12,6 +12,7 @@ from scipy.sparse import csc_matrix
 from scipy.io import loadmat
 
 from dictionary import Random
+from analyses.stats import collect_generator_stats
 
 from inc.common import mtr
 
@@ -34,14 +35,14 @@ def whiten(X):
     d[d<0] = 0 # In case d returns very small negative eigenvalues
     return (V / sqrt(d+spacing(1))) * V.T * X
 
-class Base(object):
+class _Base(object):
     def __init__(self, p = 12, K = 256, N = 10000, **kwds):
         self.p = p # patch dimensions
         self.P = p*p
         self.K = K
         self.N = N # Number of samples to generate on each call
 
-class FromDictionary(Base):
+class FromDictionary(_Base):
     """Generate examples from a set of "ground-truth" dictionary elements
     
     >>> Astar = Random(8, 100, sort=False); Xgen = FromDictionary(Astar)
@@ -51,6 +52,8 @@ class FromDictionary(Base):
     >>> assert_equal(Xgen.K, 100)
     
     """
+    _collect_generator_stats = collect_generator_stats
+    
     def __init__(self, dictionary, snr = 6, **kwds):
         self.dictionary = dictionary
         self.snr        = snr
@@ -58,17 +61,14 @@ class FromDictionary(Base):
         self.sigma      = 10.0**(-snr / 20.0)
         super(FromDictionary, self).__init__(p = dictionary.p, K = dictionary.K, **kwds)
     
-    def generate(self):
-        S = self.generate_S()
-        X = self.dictionary.A*S
+    def generate(self, itr):
+        self.S = self.generate_S()
+        X = self.dictionary.A*self.S
         A_signal = sqrt(mean(multiply(X, X),axis=0))
         noise = randn(X.shape[0], X.shape[1])*mean(A_signal)*self.sigma
         
-        # Calculate the SNR for each example
-        A_noise  = sqrt(mean(multiply(noise, noise), axis=0))
-        Xsnr = 20 * (log10(A_signal / A_noise))
-        
-        return mtr(X + noise), S, Xsnr
+        self.X = mtr(X + noise)
+        self._collect_generator_stats(A_signal, noise, itr)
 
 class FromDictionaryL0(FromDictionary):
     """Generate examples from a set of "ground-truth" dictionary elements, using L0 sparsity
@@ -88,7 +88,7 @@ class FromDictionaryL0(FromDictionary):
     def generate_S(self):
         rows = randint(self.dictionary.K, size=self.N*self.nnz)
         cols = arange(self.N).repeat(self.nnz)
-        data = -log(rand(self.N*self.nnz)) / self.lambdaS + 1
+        data = -log(rand(self.N*self.nnz)) / self.lambdaS
         return mtr(csc_matrix((data, (rows, cols)), shape=(self.dictionary.K, self.N)).todense())
 
 class FromDictionaryL1(FromDictionary):
@@ -113,7 +113,7 @@ class FromDictionaryL1(FromDictionary):
     def plambda(self):
         return self.sigma ** 2 / self.lambdaS
 
-class FromImageDataset(Base):
+class FromImageDataset(_Base):
     """Generate samples from the IMAGES.mat file from http://redwood.berkeley.edu/bruno/sparsenet/.
     
     >>> Xgen = FromImageDataset('../../contrib/sparsenet/IMAGES.mat', p = 16, K=192)
@@ -132,11 +132,11 @@ class FromImageDataset(Base):
         self.image_idx = 0
         print "Using random mode: %r" % self.random
 
-    def generate(self):
+    def generate(self, itr):
         if self.random:
-            return self.generate_random()
+            self.X = self.generate_random()
         else:
-            return self.generate_sliding()
+            self.X = self.generate_sliding()
 
     def generate_random(self):
         image_size, _, num_images = self.images.shape

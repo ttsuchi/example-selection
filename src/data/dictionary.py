@@ -198,54 +198,42 @@ class RandomGabors(GeneratedDictionary):
         
         return exp(-.5 * ((xt*xt)/sgx+(yt*yt)/sgy)) * cos(2 * pi/lm * xt)
 
-class _FromFile(GeneratedDictionary):
-    """Load dictionaries from the specified MATLAB file.
+class Letters(GeneratedDictionary):
+    """Generate dictionaries composed of alphabet letters
     """
     def __init__(self, **kwds):
-        self.D = None
-        super(_FromFile, self).__init__(sort = False, **kwds)
+        self.L = None
+        super(Letters, self).__init__(sort = False, **kwds)
 
     def generate_A(self, P, K):
         A=zeros((P, K))
         
-        if self.D is None:
-            self.D = self._load_dictionary(P, K)
+        if self.L is None:
+            self.L = loadmat('../contrib/letters/alphabet-%d.mat' % sqrt(P))['L']
+
+        N = self.L.shape[1]
+        for ki in range(K):
+            A[:, ki] = self.L[:, ki % N]
+
+        return A
+
+class FromFile(GeneratedDictionary):
+    """Load dictionaries from the specified MATLAB file.
+    """
+    def __init__(self, matfile, **kwds):
+        self.matfile = matfile
+        self.D = loadmat(matfile)['D']
+        super(FromFile, self).__init__(sort = False, **kwds)
+
+    def generate_A(self, P, K):
+        assert P == self.D.shape[0]
+        A=zeros((P, K))
 
         N = self.D.shape[1]
         for ki in range(K):
             A[:, ki] = self.D[:, ki % N]
 
         return A
-
-class Letters(_FromFile):
-    """Load dictionaries composed of alphabet letters
-    """
-    def _load_dictionary(self, P, K):
-        return loadmat('../contrib/letters/alphabet-%d.mat' % sqrt(P))['L']
-    
-class DleRandomGaussian(_FromFile):
-    """64x256 Random Gaussian Dictionary from http://www.ux.uis.no/~karlsk/dle/
-    """
-    def _load_dictionary(self, P, K):
-        assert P == 64
-        assert K <= 256
-        return loadmat('../contrib/dictionaries/dict_rand.mat')['D']
-
-class DleOrthogonal(_FromFile):
-    """64x256 orthogonal Dictionary from http://www.ux.uis.no/~karlsk/dle/
-    """
-    def _load_dictionary(self, P, K):
-        assert P == 64
-        assert K <= 256
-        return loadmat('../contrib/dictionaries/dict_orth.mat')['D']
-
-class DleSine(_FromFile):
-    """64x256 separable dictionary with sine elements from http://www.ux.uis.no/~karlsk/dle/
-    """
-    def _load_dictionary(self, P, K):
-        assert P == 64
-        assert K <= 256
-        return loadmat('../contrib/dictionaries/dict_sine.mat')['D']
 
 def main(plot = False):
     if plot:

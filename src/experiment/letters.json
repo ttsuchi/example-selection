@@ -4,7 +4,8 @@
     "nnz": 3,
     "snr": 6,
     "true_dictionary": {
-      "cls": "Letters",
+      "cls": "FromFile",
+      "matfile": "../contrib/letters/alphabet-8.mat",
       "p": 8,
       "K": 25
     }

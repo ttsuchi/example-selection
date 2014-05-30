@@ -6,6 +6,7 @@ Calculates various statistics during the learning steps.
 from numpy import *
 from numpy.random import randn
 from numpy.testing import assert_allclose, assert_array_equal
+from scipy.cluster.vq import kmeans, vq, whiten
 import matplotlib.pyplot as plt
 
 from munkres import Munkres
@@ -13,7 +14,20 @@ from munkres import Munkres
 from inc.common import mtr
 from data.dictionary import normalize
 
-def collect_stats(X, A, oldA, Astar, S, Sstar, Xsnr, idx):
+def collect_generator_stats(self, A_signal, noise, itr):
+    """ Mixin method for the generator class. Calculates some stats related to the trainging examples.
+    """
+    # Calculate the SNR for each example
+    A_noise  = sqrt(mean(multiply(noise, noise), axis=0))
+    self.Xsnr = 20 * (log10(A_signal / A_noise))
+
+    if (itr % 10 == 1):
+        # Perform k-means
+        k = 10
+        W = whiten(self.X.T)
+        self.codebook, _ = kmeans(W, k)
+
+def collect_stats(generator, S, oldA, A, idx, itr):
     """Calculates various tatistics for the given X, A, S
     
     returns (stats, A), where:
@@ -28,6 +42,7 @@ def collect_stats(X, A, oldA, Astar, S, Sstar, Xsnr, idx):
     
     >>> assert_allclose( newA, normalize(matrix([[1,1,0],[1,0,1]])) )
     """
+    X = generator.X
     Xp = X[:,idx]
     R  = X - A*S
     Rp = Xp - A*S[:,idx]
@@ -41,11 +56,12 @@ def collect_stats(X, A, oldA, Astar, S, Sstar, Xsnr, idx):
         'std_S':        std(Sm),
         'mean_S':       mean(Sm),
         'cv':           std(Sm) / mean(Sm),
-        'mean_Xp_dist': mean(diag(Xc))-mean(Xc)
+        'mean_Xp_dist': mean(diag(Xc))-mean(Xc),
+        'vqd':          _vqd(generator, idx)
     }
     
-    if Xsnr is not None:
-        Xsnr = asarray(Xsnr).squeeze()
+    if hasattr(generator, 'Xsnr'):
+        Xsnr = asarray(generator.Xsnr).squeeze()
         stats.update({
             'mean_Xsnr':    mean(Xsnr),
             'std_Xsnr':     std(Xsnr),
@@ -53,10 +69,9 @@ def collect_stats(X, A, oldA, Astar, S, Sstar, Xsnr, idx):
             'std_Xsnr_p':   std(Xsnr[idx])
             })
     
-    if Astar is None:
-        newA = mtr(A.copy())
-    else:
+    if hasattr(generator, 'dictionary'):
         # Calculate distance
+        Astar = generator.dictionary.A
         C = - Astar.T * A
         assert all(isfinite(C))
         idx = Munkres().compute(C.tolist())
@@ -69,10 +84,37 @@ def collect_stats(X, A, oldA, Astar, S, Sstar, Xsnr, idx):
         dA = Astar - newA
         stats['dist_A'] = mean(multiply(dA, dA))
         
-        dS = Sstar - newS
+        dS = generator.S - newS
         stats['dist_S'] = mean(multiply(dS, dS)) 
+    else:
+        newA = mtr(A.copy())
 
     return stats, newA
+
+def _vqd(generator, idx, k = 10):
+    """Calculate the vector-quantized histogram intersection distance.
+       The codebook is derived from the k-means clustering of X, and the histograms of X and Xp are compared
+       using the histogram interesection distance.
+       
+       >>> X = matrix(randn(64, 10000)); idx = arange(100); d = _vqd(X, idx, k = 10)
+       
+       >>> assert(d > 0); assert(d < 0.2);  # The distance should be fairly small
+    """
+    if hasattr(generator, 'codebook'):
+        W = whiten(generator.X.T)
+        hX = _hist(W, generator.codebook)
+        hXn= _hist(W[idx, :], generator.codebook)
+        d = 1 - sum(array([hXn, hX]).min(axis=0))
+        return d
+    else:
+        return NaN
+
+def _hist(X, codebook):
+    code, _ = vq(X, codebook)
+    h, _ = histogram(code, bins=codebook.shape[0]-1)
+    h = array(h, dtype=float)
+    return h / sum(h)
+    
 
 def _history(stats, column):
     return matrix(map(lambda s: s[column].as_matrix(), stats)).T
@@ -82,6 +124,7 @@ def plot_stats(stats, design_names):
     N+= 3 if 'dist_A' in stats[0].columns else 0
     N+= 1 if 'mean_Xsnr' in stats[0].columns else 0
     N+= 1 if 'mean_Xp_dist' in stats[0].columns else 0
+    N+= 1 if 'vqd' in stats[0].columns else 0
     n = 1
 
     plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
@@ -128,6 +171,14 @@ def plot_stats(stats, design_names):
         plt.subplot(N,1,n); n += 1
         plt.plot(_history(stats,'mean_Xp_dist'))
         plt.title("Mean distances of selected examples")
+
+    if 'vqd' in stats[0].columns:
+        plt.subplot(N,1,n); n += 1
+        data = _history(stats,'vqd')
+        plt.plot(data)
+#         print data.shape
+#         plt.plot(arange(size(data))[isfinite(data)], data[isfinite(data)])
+        plt.title("VQd")
 
     plt.subplot(N,1,N)
     plt.plot(zeros((2,len(design_names))))

@@ -11,6 +11,7 @@ import analyses.figures
 import re
 import os, sys
 from os.path import splitext, basename
+from sets import Set
 import string, operator, difflib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -76,7 +77,11 @@ def main(figname, name, subname, collect = [], styles = [], tikz = False, pdf = 
         tikz_filename = file_name + '.tikz'
         save(tikz_filename,
                   figureheight = '\\figureheight',
-                  figurewidth = '\\figurewidth')
+                  figurewidth = '\\figurewidth',
+                  extra = Set([
+                        'y tick label style={/pgf/number format/.cd, precision=3, fixed, 1000 sep={}}','scaled y ticks=false',
+                        'x tick label style={/pgf/number format/.cd, precision=3, fixed, 1000 sep={}}','scaled x ticks=false',
+                        ]))
         print "Saved to %s" % tikz_filename
 
     sys.stdout.write("\n\nDone, close the figures to exit\n");
@@ -97,7 +102,7 @@ if __name__ == '__main__':
     parser.add_argument('name',            help='experiment name corresponding to the module name under the "experiment" package')
     parser.add_argument('subname',         default='', nargs='?',  help='experiment sub-name, used to distinguish the save files')
     parser.add_argument('-t','--tikz',                      default=False, help='saves Tikz file', action='store_true')
-    parser.add_argument('-p','--pdf',                      default=True, help='saves PDF file', action='store_true')
+    parser.add_argument('-p','--pdf',                      default=False, help='saves PDF file', action='store_true')
     parser.add_argument('-c','--collect',  action='append', metavar='C', help='Collects only the stats identitified by C. {' + string.join(collects, ',') + '}', default=[], choices=collects)
     parser.add_argument('-s','--styles',   action='append', metavar='S', help='Use the line style identifiedy by S. {' + string.join(styles, ',') + '}', default=[], choices=styles)
 

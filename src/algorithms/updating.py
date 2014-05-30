@@ -14,10 +14,11 @@ from inc.common import mtr
 
 from spams import trainDL
 
-def update_with(design, X, Sstar, Xsnr, A, itr):
+def update_with(design, generator, A, itr):
     """Return a new dictionary using the examples picked by the current selection policy.
     """
     all_stats = {}
+    X = generator.X
     
     # Encode all training examples
     S = design.encoder.encode(X, A)
@@ -30,7 +31,7 @@ def update_with(design, X, Sstar, Xsnr, A, itr):
     newA = design.updater.update(Xp, A, itr)
 
     # Collect the stats (and A will be re-ordered)
-    stats, A = collect_stats(X, newA, A, design.experiment.Astar, S, Sstar, Xsnr, idx)
+    stats, A = collect_stats(generator, S, A, newA, idx, itr)
     all_stats.update(stats)
 
     # Some top chosen examples

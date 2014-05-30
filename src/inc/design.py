@@ -49,7 +49,7 @@ class Experiment(object):
     
     SAVE_DIR='../results/'
     
-    def __init__(self, name, generator, selectors = None, encoders = None, updaters = None, designs = None, **kwds):
+    def __init__(self, name, generator, selectors = None, encoders = None, updaters = None, designs = None, random_init = True, **kwds):
         self.name = name
         self.generator = generator
         self.Astar =  self.generator.dictionary.A if hasattr(self.generator, 'dictionary') else None
@@ -63,8 +63,11 @@ class Experiment(object):
         self.designs = designs
 
         # Initial dictionary set with some example sets
-        X, _, _ = generator.generate()
-        A = X[:,:generator.K]
+        if random_init:
+            A = Random(self.generator.p, self.generator.K, sort=False).A
+        else:
+            X, _, _ = generator.generate()
+            A = X[:,:generator.K]
         
         self.As       = [mtr(A.copy()) for _ in designs]
         self.Xs       = []
@@ -81,11 +84,10 @@ class Experiment(object):
             start = time.time()
             
             # Generate mini-batches
-            X, Sstar, Xsnr = self.generator.generate()
-            assert all(isfinite(X))
+            self.generator.generate(self.itr)
 
             # Perform the update
-            results = executor(update_with, X, Sstar, Xsnr, self.As, self.designs, self.itr)
+            results = executor(update_with, self.generator, self.As, self.designs, self.itr)
             
             self.As, current_losses, self.Xs = tuple(map(list, zip(*results)))
             self.stats = map( lambda l_c: l_c[0].append(l_c[1], ignore_index = True), zip(self.stats, current_losses))

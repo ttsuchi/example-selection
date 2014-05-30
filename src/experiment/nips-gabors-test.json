@@ -1,0 +1,35 @@
+{
+  "generator": {
+    "cls": "FromDictionaryL0",
+    "nnz": 5,
+    "lambdaS": 1,
+    "snr": 6.28,
+    "true_dictionary": {
+      "cls": "FromFile",
+      "matfile": "../contrib/nips-gabors.mat",
+      "p": 8,
+      "K": 64
+    },
+    "N": 10000
+  },
+  "encoders": [
+    {
+      "cls": "KSparse",
+      "nnz": 5
+    }
+  ],
+  "updaters_param": {
+    "num_iter": 10
+  },
+  "updaters": [
+    {
+      "cls": "GD"
+    }
+  ],
+  "selectors_param": {
+    "n": 100
+  },
+  "selectors": [
+    {"cls": "Unif"}, {"cls": "SUNS"}, {"cls": "SUND"}
+  ]
+}

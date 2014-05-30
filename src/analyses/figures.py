@@ -88,15 +88,30 @@ def style_for_talk(line, group):
     elif group[1] == 1: # Saliency
         plt.setp(line, color='#0365C0')#'#0B5D18')
 
+def style_for_nips(line, group):
+    if group == (0,0):
+        plt.setp(line, color='k', linewidth=3.0)
+        return
 
-def plot_dist_A(data, style_fns):
-    # Calculate stats
+    plt.setp(line, linewidth=2.0)
+
+    if group[0] == 0 or group[0] == 1: # Sum
+        plt.setp(line, ls='dashed')
+    elif group[0] == 2: # PerD
+        plt.setp(line, ls='solid')
+
+    #if group[1] == 0: # Heuristic
+    #    plt.setp(line, color='#C82506')
+    #elif group[1] == 1: # Saliency
+    #    plt.setp(line, color='#0365C0')#'#0B5D18')
+
+def _plot_by_epoch(data, style_fns, stat_name, ylabel):
     N = len(data)
     for d in data:
-        dist_A = array([stat['dist_A'].as_matrix().T for stat in d['stats']])  # run-by-time
-        d['mean'] = mean(dist_A, axis=0)
-        d['sem']  = std(dist_A,  axis=0) / sqrt(N)
-        d['last'] = mean(dist_A, axis=0)[-1]
+        stat = array([stat[stat_name].as_matrix().T for stat in d['stats']])  # run-by-time
+        d['mean'] = nanmean(stat, axis=0)
+        d['sem']  = nanstd(stat,  axis=0) / sqrt(N)
+        d['last'] = nanmean(stat, axis=0)[-1]
 
     # Sort by the last performance
     data = sorted(data, key=lambda d: d['last'], reverse=True)
@@ -104,10 +119,13 @@ def plot_dist_A(data, style_fns):
     plt.figure(figsize = (9.7,6), dpi=72, facecolor='w', edgecolor='k')
     # Plot
     for d in data:
-        #plt.fill_between(xcb, lcb, ucb, alpha=0.3, facecolor='gray')
         ym = d['mean']
         yerr = d['sem'] * 1.96
         x = arange(len(ym))+1
+        idx=isfinite(ym)
+        ym  = ym[idx]
+        yerr= yerr[idx]
+        x   = x[idx]
         base_line, = plt.plot(x,ym)
         
         for style_fn in style_fns:
@@ -125,8 +143,15 @@ def plot_dist_A(data, style_fns):
     plt.gca().legend([d['name'] for d in data], loc='lower left', bbox_to_anchor=(1, 0))
     
     plt.xlabel("Iterations")
-    plt.ylabel("Distance from True Dictionaries")
+    plt.ylabel(ylabel)
     _set_fonts()
+
+def plot_dist_A(data, style_fns):
+    _plot_by_epoch(data, style_fns, 'dist_A', 'Distance from True Dictionaries')
+
+def plot_vqd(data, style_fns):
+    _plot_by_epoch(data, style_fns, 'vqd', 'D')
+
 
 def plot_dist_A_bar(data, style_fns):
     for d in data:
@@ -189,23 +214,22 @@ def plot_worst_dictionaries(data, style_fns):
     plt.imshow(to_image(A), aspect = 'auto', interpolation = 'nearest', vmin = 0, vmax = 1)
     plt.axis('off')
 
-def plot_snr(data, style_fns):
+def _plot_bars(data, style_fns, stat_name, label, horizontal = True):
     for d in data:
         dist_A = array([stat['dist_A'].as_matrix().T for stat in d['stats']])  # run-by-time
-        d['last'] = mean(dist_A, axis=0)[-1]
-        snr = array([stat['mean_Xsnr_p'].as_matrix().T for stat in d['stats']])  # run-by-time
-        d['mean_snr'] = mean(snr, axis=0)[-1]    
-        d['std_snr'] = mean(snr, axis=0)[-1]    
+        d['last'] = nanmean(dist_A, axis=0)[-1]
+        s = array([stat[stat_name].as_matrix().T for stat in d['stats']])  # run-by-time
+        d['mean'] = nanmean(nanmean(s, axis=0)[-10:])    
+        d['std'] = nanmean(nanstd(s, axis=0)[-10:])
     
     # Sort by the last performance
     data = sorted(data, key=lambda d: d['last'])
 
-    y = array([d['mean_snr'] for d in data])
-    yerr = array([d['std_snr'] for d in data])
+    y = array([d['mean'] for d in data])
+    yerr = array([d['std'] for d in data])
 
     ind = arange(len(y))
     width = .8
-    horizontal = True
 
     if horizontal:
         bars = plt.barh(ind, y, width, color = 'b')
@@ -221,49 +245,21 @@ def plot_snr(data, style_fns):
     if horizontal:
         plt.gca().set_yticks(ind+width/2)
         plt.gca().set_yticklabels([d['name'] for d in data])
-        plt.xlabel("SNR of selected examples [dB]")
+        plt.xlabel(label)
     else:
         plt.gca().set_xticks(ind+width/2)
         plt.gca().set_xticklabels([d['name'] for d in data])
-        plt.ylabel("SNR of selected examples [dB]")
+        plt.ylabel(label)
+
+
+def plot_snr(data, style_fns):
+    _plot_bars(data, style_fns, 'mean_Xsnr_p', "SNR of selected examples [dB]", True)
 
 def plot_xp_dist(data, style_fns):
-    for d in data:
-        dist_A = array([stat['dist_A'].as_matrix().T for stat in d['stats']])  # run-by-time
-        d['last'] = mean(dist_A, axis=0)[-1]
-        xpd = array([stat['mean_Xp_dist'].as_matrix().T for stat in d['stats']])  # run-by-time
-        d['mean_xpd'] = mean(xpd, axis=0)[-1]    
-        d['std_xpd'] = mean(xpd, axis=0)[-1]    
-    
-    # Sort by the last performance
-    data = sorted(data, key=lambda d: d['last'])
+    _plot_bars(data, style_fns, 'mean_Xp_dist', "Mean distance among selected examples", True)
 
-    y = array([d['mean_xpd'] for d in data])
-    yerr = array([d['std_xpd'] for d in data])
-
-    ind = arange(len(y))
-    width = .8
-    horizontal = True
-
-    if horizontal:
-        bars = plt.barh(ind, y, width, color = 'b')
-    else:
-        bars = plt.bar(ind, y, width, color = 'b', yerr = yerr)
-
-    _set_fonts()
-
-    for bar, d in zip(bars, data):
-        for style_fn in style_fns:
-            style_fn(bar, d['design'].selector.group())
-
-    if horizontal:
-        plt.gca().set_yticks(ind+width/2)
-        plt.gca().set_yticklabels([d['name'] for d in data])
-        plt.xlabel("Mean distance among selected examples")
-    else:
-        plt.gca().set_xticks(ind+width/2)
-        plt.gca().set_xticklabels([d['name'] for d in data])
-        plt.ylabel("Mean distance among selected examples")
+def plot_vqd_bar(data, style_fns):
+    _plot_bars(data, style_fns, 'vqd', 'D', True)
 
 if __name__ == '__main__':
     import doctest
