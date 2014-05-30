@@ -72,14 +72,7 @@ def collect_stats(generator, S, oldA, A, idx, itr):
     if hasattr(generator, 'dictionary'):
         # Calculate distance
         Astar = generator.dictionary.A
-        C = - Astar.T * A
-        assert all(isfinite(C))
-        idx = Munkres().compute(C.tolist())
-        newA = mtr(zeros(A.shape))
-        newS = zeros(S.shape)
-        for r, c in idx:
-            newA[:, r] = A[:, c]
-            newS[r, :] = S[c, :]
+        newA, newS = _best_match(Astar, A, S, itr)
 
         dA = Astar - newA
         stats['dist_A'] = mean(multiply(dA, dA))
@@ -90,6 +83,26 @@ def collect_stats(generator, S, oldA, A, idx, itr):
         newA = mtr(A.copy())
 
     return stats, newA
+
+def _best_match(Astar, A, S, itr):
+    """Calculates the best matching ordering for A against Astar.
+       If there are too many dictionaries, Munkres can take a bit too long.
+       So the matching is only done at logarithmically spaced epochs, [1,2,3,4,5,6,7,8,10,12,14,17,20,24,...]
+    """
+    q = 15
+    if Astar.shape[1] > 64 and floor(q*log10(itr+1)) != floor(q*log10(itr+2)):
+        C = - Astar.T * A
+        assert all(isfinite(C))
+        idx = Munkres().compute(C.tolist())
+        newA = mtr(zeros(A.shape))
+        newS = zeros(S.shape)
+        for r, c in idx:
+            newA[:, r] = A[:, c]
+            newS[r, :] = S[c, :]
+        
+        return newA, newS
+    else:
+        return A, S
 
 def _vqd(generator, idx, k = 10):
     """Calculate the vector-quantized histogram intersection distance.

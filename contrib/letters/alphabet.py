@@ -25,7 +25,7 @@ def main(p):
             L[:,l] = -L[:,l]
         l += 1
     
-    savemat("alphabet-%d.mat" % p, {'L' : L })
+    savemat("alphabet-%d.mat" % p, {'D' : L })
     print "Created %d-by-%d letters" % (p, p)
 
 if __name__ == '__main__':
