@@ -14,12 +14,6 @@
   },
   "encoders": [
     {
-      "cls": "LASSO",
-      "plambda": 3.014
-    }, {
-      "cls": "SOMP",
-      "nnz": 5
-    }, {
       "cls": "KSparse",
       "nnz": 5
     }
