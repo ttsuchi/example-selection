@@ -10,7 +10,7 @@
       "p": 8,
       "K": 64
     },
-    "N": 10000
+    "N": 100000
   },
   "encoders": [
     {
@@ -25,7 +25,7 @@
     }
   ],
   "updaters_param": {
-    "num_iter": 10
+    "num_iter": 100
   },
   "updaters": [
     {
@@ -33,10 +33,9 @@
     }
   ],
   "selectors_param": {
-    "n": 100
+    "n": 1000
   },
   "selectors": [
-    {"cls": "Unif"}, {"cls": "ErrS"}, {"cls": "MXGS"}, {"cls": "MXGD"}, 
-    {"cls": "SNRS"}, {"cls": "SNRD"}, {"cls": "SUNS"}, {"cls": "SUND"}, {"cls": "SalMap"}
+    {"cls": "Unif"}, {"cls": "SUNS"}, {"cls": "SUND"}
   ]
 }
