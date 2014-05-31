@@ -9,21 +9,22 @@ from PIL import Image, ImageDraw, ImageFont
 from scipy.io import savemat
 
 def main(p):
-    letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456'
     font = ImageFont.truetype('slkscr.ttf', p)
-    L = zeros((p*p, len(letters)))
+    L = zeros((p*p, len(letters)*2))
     
     l = 0
+    sgn=1
     for letter in letters:
         img = Image.new('L', (p,p))
         data = ImageDraw.Draw(img)
         data.fontmode = '1'
         data.text((0,0), letter, fill=255, font=font)
-        L[:,l] = array(img).reshape((p*p,))
-        if l % 2 == 1:
-            # flip signs
-            L[:,l] = -L[:,l]
+        L[:,l] = sgn*array(img).reshape((p*p,))
         l += 1
+        L[:,l] = sgn*array(img).T.reshape((p*p,))
+        l += 1
+        sgn *= -1
     
     savemat("alphabet-%d.mat" % p, {'D' : L })
     print "Created %d-by-%d letters" % (p, p)
