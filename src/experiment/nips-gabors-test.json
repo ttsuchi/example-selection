@@ -8,7 +8,7 @@
       "cls": "FromFile",
       "matfile": "../contrib/nips-gabors.mat",
       "p": 8,
-      "K": 64
+      "K": 256
     },
     "N": 100000
   },
