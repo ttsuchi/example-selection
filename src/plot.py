@@ -37,10 +37,15 @@ def main(figname, name, subname, collect = [], styles = [], tikz = False, pdf = 
     pattern = string.join(names, '-') + '[0-9]*\.pkl'
     multiple_stats = []
     designs = None
+    max_iter = -1
     for experiment in [Experiment.load(splitext(basename(f))[0]) for f in os.listdir(Experiment.SAVE_DIR) if re.match(pattern, f)]:
         print "Loaded %s, ended at iteration = %d" % (experiment.name, experiment.itr)
-        multiple_stats.append((experiment.stats, experiment.As, experiment.Xs))
-        designs = experiment.designs
+        if experiment.itr >= max_iter:
+            max_iter = experiment.itr
+            multiple_stats.append((experiment.stats, experiment.As, experiment.Xs))
+            designs = experiment.designs
+        else:
+            print "Skipping data, since it's less than %d" % max_iter
     
     if designs is None:
         raise Exception("No designs matched " + pattern)
