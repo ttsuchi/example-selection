@@ -10,16 +10,22 @@
       "p": 8,
       "K": 64
     },
-    "N": 10000
+    "N": 100000
   },
   "encoders": [
     {
+      "cls": "LASSO",
+      "plambda": 3.014
+    }, {
+      "cls": "SOMP",
+      "nnz": 5
+    }, {
       "cls": "KSparse",
       "nnz": 5
     }
   ],
   "updaters_param": {
-    "num_iter": 10
+    "num_iter": 100
   },
   "updaters": [
     {
@@ -27,7 +33,7 @@
     }
   ],
   "selectors_param": {
-    "n": 100
+    "n": 1000
   },
   "selectors": [
     {"cls": "Unif"}, {"cls": "SUNS"}, {"cls": "SUND"}
