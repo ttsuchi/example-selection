@@ -86,11 +86,11 @@ def collect_stats(generator, S, oldA, A, idx, itr):
 
 def _best_match(Astar, A, S, itr):
     """Calculates the best matching ordering for A against Astar.
-       If there are too many dictionaries, Munkres can take a bit too long.
+       If there are many dictionaries, Munkres can take a bit too long.
        So the matching is only done at logarithmically spaced epochs, [1,2,3,4,5,6,7,8,10,12,14,17,20,24,...]
     """
     q = 15
-    if Astar.shape[1] > 64 and floor(q*log10(itr+1)) != floor(q*log10(itr+2)):
+    if floor(q*log10(itr+1)) != floor(q*log10(itr+2)):
         C = - Astar.T * A
         assert all(isfinite(C))
         idx = Munkres().compute(C.tolist())

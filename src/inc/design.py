@@ -13,7 +13,7 @@ import pandas
 import pickle
 import os
 
-from data.dictionary import Random, to_image
+from data.dictionary import Random, to_image, normalize
 from algorithms.updating import update_with
 from inc.common import mtr
 from inc.execution import Serial
@@ -49,7 +49,7 @@ class Experiment(object):
     
     SAVE_DIR='../results/'
     
-    def __init__(self, name, generator, selectors = None, encoders = None, updaters = None, designs = None, random_init = True, **kwds):
+    def __init__(self, name, generator, selectors = None, encoders = None, updaters = None, designs = None, random_init = False, **kwds):
         self.name = name
         self.generator = generator
         self.Astar =  self.generator.dictionary.A if hasattr(self.generator, 'dictionary') else None
@@ -66,8 +66,9 @@ class Experiment(object):
         if random_init:
             A = Random(self.generator.p, self.generator.K, sort=False).A
         else:
-            X, _, _ = generator.generate()
-            A = X[:,:generator.K]
+            generator.generate(-1)
+            X = generator.X
+            A = normalize(X[:,:generator.K])
         
         self.As       = [mtr(A.copy()) for _ in designs]
         self.Xs       = []
