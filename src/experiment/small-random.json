@@ -5,10 +5,10 @@
     "lambdaS": 1,
     "snr": 6.28,
     "true_dictionary": {
-      "cls": "FromFile",
-      "matfile": "../contrib/nips-gabors.mat",
-      "p": 8,
-      "K": 100
+      "cls": "Random",
+      "sort": false,
+      "p": 4,
+      "K": 25
     },
     "N": 50000
   },
@@ -37,7 +37,6 @@
     "n": 500
   },
   "selectors": [
-    {"cls": "Unif"}, {"cls": "ErrS"}, {"cls": "MXGS"}, {"cls": "MXGD"}, 
-    {"cls": "SNRS"}, {"cls": "SNRD"}, {"cls": "SUNS"}, {"cls": "SUND"}, {"cls": "SalMap"}
+    {"cls": "Unif"}, {"cls": "SUND"}
   ]
 }

@@ -10,14 +10,14 @@
       "p": 8,
       "K": 64
     },
-    "N": 10000
+    "N": 50000
   },
   "encoders": [
     {
       "cls": "LASSO",
       "plambda": 3.014
     }, {
-      "cls": "SOMP",
+      "cls": "OMP",
       "nnz": 5
     }, {
       "cls": "KSparse",
@@ -29,11 +29,12 @@
   },
   "updaters": [
     {
-      "cls": "GD"
+      "cls": "GD",
+      "eq_power": 0.2
     }
   ],
   "selectors_param": {
-    "n": 100
+    "n": 500
   },
   "selectors": [
     {"cls": "Unif"}, {"cls": "ErrS"}, {"cls": "MXGS"}, {"cls": "MXGD"}, 

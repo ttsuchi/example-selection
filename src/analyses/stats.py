@@ -133,28 +133,29 @@ def _history(stats, column):
     return matrix(map(lambda s: s[column].as_matrix(), stats)).T
 
 def plot_stats(stats, design_names):
-    N = 4
+    N = 1
     N+= 3 if 'dist_A' in stats[0].columns else 0
-    N+= 1 if 'mean_Xsnr' in stats[0].columns else 0
-    N+= 1 if 'mean_Xp_dist' in stats[0].columns else 0
+#     N+= 1 if 'mean_Xsnr' in stats[0].columns else 0
+#     N+= 1 if 'mean_Xp_dist' in stats[0].columns else 0
     N+= 1 if 'vqd' in stats[0].columns else 0
     n = 1
 
     plt.figure(len(design_names) + 1, figsize = (8,6), dpi=80, facecolor='w', edgecolor='k')
     plt.clf()
     
-    plt.subplot(N,1,n); n += 1
-    plt.plot(_history(stats,'loss_sampled'))
-    plt.gca().set_xticklabels([])
-    plt.title("loss for the sampled set")
-
-    plt.subplot(N,1,n); n += 1
-    plt.plot(_history(stats,'loss_all'))
-    plt.gca().set_xticklabels([])
-    plt.title("loss for all training set")
+#     plt.subplot(N,1,n); n += 1
+#     plt.plot(_history(stats,'loss_sampled'))
+#     plt.gca().set_xticklabels([])
+#     plt.title("loss for the sampled set")
+# 
+#     plt.subplot(N,1,n); n += 1
+#     plt.plot(_history(stats,'loss_all'))
+#     plt.gca().set_xticklabels([])
+#     plt.title("loss for all training set")
 
     plt.subplot(N,1,n); n += 1
     plt.plot(_history(stats,'diff_A'))
+    plt.gca().set_yscale('log')
     plt.title("difference in A")
 
     if 'dist_A' in stats[0].columns:
@@ -163,27 +164,27 @@ def plot_stats(stats, design_names):
         plt.gca().set_xticklabels([])
         plt.title("average distance from the true dictionary")
 
-        plt.subplot(N,1,n); n += 1
-        data = _history(stats,'dist_A')[-1,:].T
-        ind = arange(data.shape[0])
-        width = .8
-        plt.bar(ind, data, width, color = 'b')
-        plt.gca().set_xticks(ind+width/2)
-        plt.gca().set_xticklabels(design_names)
-        
-        plt.subplot(N,1,n); n += 1
-        plt.plot(_history(stats,'dist_S'))
-        plt.title("average distance from the true activation")
+#         plt.subplot(N,1,n); n += 1
+#         data = _history(stats,'dist_A')[-1,:].T
+#         ind = arange(data.shape[0])
+#         width = .8
+#         plt.bar(ind, data, width, color = 'b')
+#         plt.gca().set_xticks(ind+width/2)
+#         plt.gca().set_xticklabels(design_names)
+#         
+#         plt.subplot(N,1,n); n += 1
+#         plt.plot(_history(stats,'dist_S'))
+#         plt.title("average distance from the true activation")
 
-    if 'mean_Xsnr' in stats[0].columns:
-        plt.subplot(N,1,n); n += 1
-        plt.plot(_history(stats,'mean_Xsnr_p'))
-        plt.title("SNR of selected examples")
-        
-    if 'mean_Xp_dist' in stats[0].columns:
-        plt.subplot(N,1,n); n += 1
-        plt.plot(_history(stats,'mean_Xp_dist'))
-        plt.title("Mean distances of selected examples")
+#     if 'mean_Xsnr' in stats[0].columns:
+#         plt.subplot(N,1,n); n += 1
+#         plt.plot(_history(stats,'mean_Xsnr_p'))
+#         plt.title("SNR of selected examples")
+#         
+#     if 'mean_Xp_dist' in stats[0].columns:
+#         plt.subplot(N,1,n); n += 1
+#         plt.plot(_history(stats,'mean_Xp_dist'))
+#         plt.title("Mean distances of selected examples")
 
     if 'vqd' in stats[0].columns:
         plt.subplot(N,1,n); n += 1

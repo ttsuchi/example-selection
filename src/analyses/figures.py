@@ -11,7 +11,7 @@ import string
 
 from data.dictionary import to_image
 
-from algorithms.encoding import LASSO, SOMP, KSparse
+from algorithms.encoding import LASSO, SOMP, OMP, KSparse
 from algorithms.updating import GD, SPAMS
 from algorithms.selection import *
 
@@ -33,6 +33,9 @@ def collect_only_lasso(design):
 
 def collect_only_somp(design):
     return design.encoder.__class__ == SOMP
+
+def collect_only_omp(design):
+    return design.encoder.__class__ == OMP
 
 def collect_for_talk(design):
     return design.selector.__class__ in [Unif, UsedD, MXGS, MXGD, SalMap, SUNS, SUND, ErrS, SNRD, SNRS]
@@ -61,9 +64,17 @@ def _set_fonts():
     a.set_xticklabels(a.get_xticks(), fontProperties)
     a.set_yticklabels(a.get_yticks(), fontProperties)
 
+TRANSLATION_TABLE = {
+    'Unif':'Uniform', 'ErrS': 'ErrBySum', 'ErrD': 'ErrByElement', 'MXGS': 'GradBySum', 'MXGD': 'GradByElement',
+    'SNRS': 'SNRBySum', 'SNRD': 'SNRByElement', 'SUNS':'SUNBySum', 'SUND':'SUNByElement'
+}
+
+def _translate_name(name):
+    return TRANSLATION_TABLE[name] if TRANSLATION_TABLE.has_key(name) else name
+
 # Style schemes
 
-def style_by_sd(line, group):
+def style_by_sd(line, group, design):
     if group == (0,0):
         plt.setp(line, color='k', linewidth=3.0)
     elif group[0] == 1:
@@ -71,7 +82,7 @@ def style_by_sd(line, group):
     elif group[0] == 2:
         plt.setp(line, ls='solid')
         
-def style_for_talk(line, group):
+def style_for_talk(line, group, design):
     if group == (0,0):
         plt.setp(line, color='k', linewidth=3.0)
         return
@@ -88,7 +99,20 @@ def style_for_talk(line, group):
     elif group[1] == 1: # Saliency
         plt.setp(line, color='#0365C0')#'#0B5D18')
 
-def style_for_nips(line, group):
+PAPER_COLORS = {
+    'Unif': '#000000',
+    'ErrS': '#EE1111',
+    'ErrD': '#EE1111',
+    'MXGS': '#EE11EE',
+    'MXGD': '#EE11EE',
+    'SUNS': '#1111EE',
+    'SUND': '#1111EE',
+    'SNRS': '#11EE88',
+    'SNRD': '#11EE88',
+    'SalMap': '#333333'
+}
+
+def style_for_paper(line, group, design):
     if group == (0,0):
         plt.setp(line, color='k', linewidth=3.0)
         return
@@ -100,10 +124,9 @@ def style_for_nips(line, group):
     elif group[0] == 2: # PerD
         plt.setp(line, ls='solid')
 
-    #if group[1] == 0: # Heuristic
-    #    plt.setp(line, color='#C82506')
-    #elif group[1] == 1: # Saliency
-    #    plt.setp(line, color='#0365C0')#'#0B5D18')
+    selector_name = design.selector.__class__.__name__
+    if PAPER_COLORS.has_key(selector_name):
+        plt.setp(line, color = PAPER_COLORS[selector_name])
 
 def _plot_by_epoch(data, style_fns, stat_name, ylabel):
     N = len(data)
@@ -129,9 +152,9 @@ def _plot_by_epoch(data, style_fns, stat_name, ylabel):
         base_line, = plt.plot(x,ym)
         
         for style_fn in style_fns:
-            style_fn(base_line, d['design'].selector.group())
+            style_fn(base_line, d['design'].selector.group(), d['design'])
         
-        plt.fill_between(x, ym - yerr, ym + yerr, facecolor=base_line.get_color(), alpha = 0.05)
+        #plt.fill_between(x, ym - yerr, ym + yerr, facecolor=base_line.get_color(), alpha = 0.05)
     plt.gca().set_xscale('log')
 
     # Shink current axis by 20%
@@ -140,14 +163,17 @@ def _plot_by_epoch(data, style_fns, stat_name, ylabel):
     
     # Put a legend to the right of the current axis
     # plt.gca().legend(design_names, loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.gca().legend([d['name'] for d in data], loc='lower left', bbox_to_anchor=(1, 0))
+    plt.gca().legend([_translate_name(d['name']) for d in data], loc='lower left', bbox_to_anchor=(1, 0))
     
-    plt.xlabel("Iterations")
+    plt.xlabel("Epochs")
     plt.ylabel(ylabel)
     _set_fonts()
 
 def plot_dist_A(data, style_fns):
     _plot_by_epoch(data, style_fns, 'dist_A', 'Distance from True Dictionaries')
+
+def plot_dist_S(data, style_fns):
+    _plot_by_epoch(data, style_fns, 'dist_S', 'Distance from True Activations')
 
 def plot_vqd(data, style_fns):
     _plot_by_epoch(data, style_fns, 'vqd', 'D')
@@ -172,6 +198,38 @@ def plot_dist_A_bar(data, style_fns):
     plt.gca().set_xticklabels([d['name'] for d in data])
     
     plt.ylabel("Distance from True Dictionaries")
+    _set_fonts()
+
+def plot_dist_A_all(data, style_fns):
+    N = len(data)
+    for d in data:
+        stat = array([stat['dist_A'].as_matrix().T for stat in d['stats']])  # run-by-time
+        d['mean'] = nanmean(stat, axis=0)
+        d['sem']  = nanstd(stat,  axis=0) / sqrt(N)
+        d['last'] = nanmean(stat, axis=0)[-1]
+
+
+    kdata = filter(lambda d: d['design'].encoder.__class__.__name__ == 'KSparse', data)
+    kdata = sorted(kdata, key=lambda d: d['last'], reverse=True)
+    sorder = map(lambda d: d['design'].selector.__class__.__name__, kdata)
+    
+    y=zeros((3, len(sorder)))
+    encoders = ['KSparse', 'SOMP', 'LASSO']
+    for i, e in enumerate(encoders):
+        for j, s in enumerate(sorder):
+            y[i, j] = next(d['last'] for d in data if d['design'].encoder.__class__.__name__ == e and d['design'].selector.__class__.__name__ == s)
+
+    plt.figure(figsize = (9.7,6), dpi=72, facecolor='w', edgecolor='k')
+    # Plot
+    for i, d in enumerate(kdata):        
+        base_line, = plt.plot(arange(3), y[:,i], marker = 'o')
+        
+        for style_fn in style_fns:
+            style_fn(base_line, d['design'].selector.group(), d['design'])        
+        
+    plt.gca().set_xlim([-.5, 2.5])
+    plt.gca().set_xticks(arange(3))
+    plt.gca().set_xticklabels(['k-Sparse', 'L0', 'L1'])
     _set_fonts()
 
 def plot_true_dictionaries(data, style_fns):
@@ -240,15 +298,15 @@ def _plot_bars(data, style_fns, stat_name, label, horizontal = True):
 
     for bar, d in zip(bars, data):
         for style_fn in style_fns:
-            style_fn(bar, d['design'].selector.group())
+            style_fn(bar, d['design'].selector.group(), d['design'])
 
     if horizontal:
         plt.gca().set_yticks(ind+width/2)
-        plt.gca().set_yticklabels([d['name'] for d in data])
+        plt.gca().set_yticklabels([_translate_name(d['name']) for d in data])
         plt.xlabel(label)
     else:
         plt.gca().set_xticks(ind+width/2)
-        plt.gca().set_xticklabels([d['name'] for d in data])
+        plt.gca().set_xticklabels([_translate_name(d['name']) for d in data])
         plt.ylabel(label)
 
 
@@ -259,7 +317,7 @@ def plot_xp_dist(data, style_fns):
     _plot_bars(data, style_fns, 'mean_Xp_dist', "Mean distance among selected examples", True)
 
 def plot_vqd_bar(data, style_fns):
-    _plot_bars(data, style_fns, 'vqd', 'D', True)
+    _plot_bars(data, style_fns, 'vqd', 'D(X_N||X_n)', True)
 
 if __name__ == '__main__':
     import doctest

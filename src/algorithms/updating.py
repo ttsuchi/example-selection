@@ -47,13 +47,17 @@ class InverseEta(object):
 
     >>> assert_allclose(.001 + (.1 - .001) / 2, eta(200))
     """
-    def __init__(self, vmax = .1, vmin = 0, half_life = 200):
+    def __init__(self, vmax = .5, vmin = .1, half_life = 200):
         self.vmax = vmax
         self.vmin = vmin
         self.half_life = float(half_life)
+        print self.__str__()
 
     def __call__(self, itr):
         return (self.vmax - self.vmin) / (1 + float(itr) / self.half_life) + self.vmin
+    
+    def __str__(self):
+        return "InverseEta['vmax':%f, 'vmin':%f, 'half_life':%f]" % (self.vmax, self.vmin, self.half_life)
 
 class ExpDecayEta(object):
     """A function object that produces exponentially decaying eta with respect to the iterations.

@@ -5,7 +5,7 @@ The encoding algorithms calculate the activation (S) from the observable (X) and
 '''
 from numpy import *
 from numpy.random import randn
-from spams import lasso, somp
+from spams import lasso, omp, somp
 
 from inc.common import mtr
 
@@ -59,14 +59,29 @@ class LASSO(_Base):
             'lambda2':   0,
             # 'L':         max_iter,
             'pos':       pos,
-            'verbose':   True,
+            'verbose':   False,
             'numThreads': -1
             }
         super(LASSO, self).__init__(**kwds)
     
     def _encode(self, X, A):
-        S = lasso(X, A, return_reg_path = False, **self.spams_param)
-        return S.todense()
+        S = lasso(X, A, return_reg_path = False, **self.spams_param).todense()
+        #print "LASSO nnz: %d" % count_nonzero(S)
+        return S
+
+class OMP(_Base):
+    def __init__(self, nnz = 3, **kwds):
+        self.nnz = nnz
+        super(OMP, self).__init__(**kwds)
+        
+    def _encode(self, X, A):
+        # Solve min_{alpha} ||x-Dalpha||_2^2  s.t. ||alpha||_0 <= L
+        S=omp(X, A, L=self.nnz, return_reg_path = False, numThreads=-1).todense()
+        #print "OMP nnz: %d" % count_nonzero(S)
+        return S
+    
+    def __str__(self):
+        return "OMP['nnz':%d]" % self.nnz
 
 class SOMP(_Base):
     def __init__(self, nnz = 3, **kwds):
@@ -76,8 +91,8 @@ class SOMP(_Base):
     def _encode(self, X, A):
         # Solve min_{A_i} ||A_i||_{0,infty}  s.t  ||X_i-D A_i||_2^2 <= eps*n_i
         ind_groups = arange(0, X.shape[1], 10, dtype=int32)
-        S=somp(X, A, ind_groups, L=self.nnz, numThreads=-1)
-        return S.todense()
+        S=somp(X, A, ind_groups, L=self.nnz, numThreads=-1).todense()
+        return S
 
 class KSparse(_Base):
     def __init__(self, nnz = 3, **kwds):
