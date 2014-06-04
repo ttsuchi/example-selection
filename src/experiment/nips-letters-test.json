@@ -6,7 +6,7 @@
     "snr": 6.28,
     "true_dictionary": {
       "cls": "FromFile",
-      "matfile": "../contrib/letters/alphabet-8.mat",
+      "matfile": "../contrib/letters/letters-64-8.mat",
       "p": 8,
       "K": 64
     },
