@@ -148,6 +148,13 @@ class Experiment(object):
             up = ud.copy(); up.update(d_updater);  del up['cls']
             selector = (getattr(m_selector, d_selector['cls']))(**sp)
             encoder  = (getattr(m_encoder,   d_encoder['cls']))(**ep)
+
+            if up.has_key('eta') and up['eta'].has_key('cls'):
+                upe = up['eta'].copy()
+                etac = upe['cls']
+                del upe['cls']
+                up['eta'] = (getattr(m_updater, etac))(**upe)
+
             updater  = (getattr(m_updater,   d_updater['cls']))(encoder, **up)
             designs.append(Design(None, selector, encoder, updater))
         

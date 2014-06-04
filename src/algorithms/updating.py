@@ -51,7 +51,6 @@ class InverseEta(object):
         self.vmax = vmax
         self.vmin = vmin
         self.half_life = float(half_life)
-        print self.__str__()
 
     def __call__(self, itr):
         return (self.vmax - self.vmin) / (1 + float(itr) / self.half_life) + self.vmin
@@ -110,6 +109,9 @@ class GD(_Base):
             A = mtr(normalize(A))
 
         return A
+
+    def __str__(self):
+        return "GD{'eq_power':%f, 'eta':%s}" % (self.eq_power, self.eta)
 
 class SPAMS(_Base):
     """Learns the dictionary using the SPAMS package.

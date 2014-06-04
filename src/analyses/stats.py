@@ -21,7 +21,7 @@ def collect_generator_stats(self, A_signal, noise, itr):
     A_noise  = sqrt(mean(multiply(noise, noise), axis=0))
     self.Xsnr = 20 * (log10(A_signal / A_noise))
 
-    if (itr % 10 == 1):
+    if (itr % 100 == 1):
         # Perform k-means
         k = 10
         W = whiten(self.X.T)
