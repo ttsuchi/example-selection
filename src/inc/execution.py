@@ -36,8 +36,8 @@ class Serial(object):
 class IParallel(object):
     """Executes the updates in parallel using IPython.parallel.    
     """
-    def __init__(self):
-        self.client = Client()
+    def __init__(self, profile):
+        self.client = Client(profile = profile)
         self.dview = self.client[:]
         
     def __call__(self, update_fn, generator, As, designs, itr):
