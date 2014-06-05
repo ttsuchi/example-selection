@@ -159,7 +159,7 @@ class SalMap(_Base):
                 self.kernels = [cv.getGaborKernel((p, p), p / 2, pi * angle / 4, p, 1) for angle in [0, 45, 90, 135]]
             else:
                 import pickle
-                with open("algorithms/gabor-kernels-%d" % p, 'r') as fin:
+                with open("./algorithms/gabor-kernels-%d.pkl" % p, 'r') as fin:
                     self.kernels = pickle.load(fin)
         
         Xs = zeros((p, p * N))
