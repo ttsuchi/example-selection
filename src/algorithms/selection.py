@@ -154,7 +154,13 @@ class SalMap(_Base):
 
         # Apply gabor filters to get the orientation channel
         if self.kernels is None:
-            self.kernels = [cv.getGaborKernel((p, p), p / 2, pi * angle / 4, p, 1) for angle in [0, 45, 90, 135]]
+            # only available on OpenCV 3+...
+            if hasattr(cv, 'getGaborKernel'):
+                self.kernels = [cv.getGaborKernel((p, p), p / 2, pi * angle / 4, p, 1) for angle in [0, 45, 90, 135]]
+            else:
+                import pickle
+                with open("algorithms/gabor-kernels-%d" % p, 'r') as fin:
+                    self.kernels = pickle.load(fin)
         
         Xs = zeros((p, p * N))
         for n in range(N):
