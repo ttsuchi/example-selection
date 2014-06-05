@@ -6,9 +6,9 @@
     "snr": 6.28,
     "true_dictionary": {
       "cls": "FromFile",
-      "matfile": "../contrib/nips-gabors-64.mat",
+      "matfile": "../contrib/nips-gabors.mat",
       "p": 8,
-      "K": 64
+      "K": 100
     },
     "N": 50000
   },
